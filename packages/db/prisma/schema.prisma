@@ -1,0 +1,68 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id               Int        @id @default(autoincrement())
+  name             String
+  telegramId       String?
+  isActive         Boolean    @default(true)
+  isHidden         Boolean    @default(false)
+  initialRating    Int        @default(1500)
+  initialGames     Int        @default(0)
+  telegramUsername String?
+  isAdmin          Boolean    @default(false)
+  playerA1         Match[]    @relation("playerA1")
+  playerA2         Match[]    @relation("playerA2")
+  playerB1         Match[]    @relation("playerB1")
+  playerB2         Match[]    @relation("playerB2")
+  chats            Chat[]     @relation("ChatToUser")
+  chatUsers        ChatUser[]
+}
+
+model Match {
+  id         Int      @id @default(autoincrement())
+  day        DateTime
+  playerA1Id Int
+  playerA2Id Int
+  playerB1Id Int
+  playerB2Id Int
+  teamAScore Int
+  teamBScore Int
+  league     Int
+  chatId     String?
+  Chat       Chat?    @relation(fields: [chatId], references: [id])
+  playerA1   User     @relation("playerA1", fields: [playerA1Id], references: [id])
+  playerA2   User     @relation("playerA2", fields: [playerA2Id], references: [id])
+  playerB1   User     @relation("playerB1", fields: [playerB1Id], references: [id])
+  playerB2   User     @relation("playerB2", fields: [playerB2Id], references: [id])
+}
+
+model Chat {
+  id        String     @id
+  type      String
+  name      String
+  match     Match[]
+  users     User[]     @relation("ChatToUser")
+  chatUsers ChatUser[]
+}
+
+model ChatUser {
+  chatId        String
+  userId        Int
+  isHidden      Boolean @default(false)
+  isActive      Boolean @default(false)
+  isAdmin       Boolean @default(false)
+  initialRating Int     @default(1500)
+  initialGames  Int     @default(0)
+  Chat          Chat    @relation(fields: [chatId], references: [id])
+  User          User    @relation(fields: [userId], references: [id])
+
+  @@id([chatId, userId])
+}
