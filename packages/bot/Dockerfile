@@ -26,8 +26,7 @@ FROM node:24-bookworm-slim
 WORKDIR /app
 ENV NODE_ENV=production PORT=4000
 
-# Copy Prisma client (so runtime has @prisma/client + generated code)
-COPY --from=build /app/packages/db/node_modules/.prisma ./node_modules/.prisma
+# Copy built application and dependencies
 COPY --from=build /app/packages/bot/dist ./dist
 COPY --from=build /app/packages/bot/package.json ./package.json
 COPY --from=build /app/node_modules ./node_modules
