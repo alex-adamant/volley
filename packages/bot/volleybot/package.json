@@ -1,0 +1,26 @@
+{
+  "name": "volleybot",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.ts",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "postinstall": "prisma generate"
+  },
+  "keywords": [],
+  "author": "Alex Adamant",
+  "license": "ISC",
+  "dependencies": {
+    "@prisma/client": "^5.12.1",
+    "@vercel/kv": "^1.0.1",
+    "telegraf": "^4.15.3"
+  },
+  "devDependencies": {
+    "@types/node": "^18.16.1",
+    "@vercel/node": "^2.12.0",
+    "prettier": "^3.1.1",
+    "prisma": "^5.7.1",
+    "ts-node": "^10.9.1",
+    "typescript": "^5.3.3"
+  }
+}

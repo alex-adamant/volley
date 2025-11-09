@@ -1,0 +1,51 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id               Int     @id @default(autoincrement())
+  name             String
+  telegramId       String?
+  telegramUsername String?
+  isActive         Boolean @default(true)
+  isHidden         Boolean @default(false)
+  isAdmin          Boolean @default(false)
+  initialRating    Int     @default(1500)
+  initialGames     Int     @default(0)
+  playerA1         Match[] @relation("playerA1")
+  playerA2         Match[] @relation("playerA2")
+  playerB1         Match[] @relation("playerB1")
+  playerB2         Match[] @relation("playerB2")
+  chats            Chat[]
+}
+
+model Match {
+  id         Int      @id @default(autoincrement())
+  league     Int
+  day        DateTime
+  playerA1Id Int
+  playerA1   User     @relation(fields: [playerA1Id], references: [id], name: "playerA1")
+  playerA2Id Int
+  playerA2   User     @relation(fields: [playerA2Id], references: [id], name: "playerA2")
+  playerB1Id Int
+  playerB1   User     @relation(fields: [playerB1Id], references: [id], name: "playerB1")
+  playerB2Id Int
+  playerB2   User     @relation(fields: [playerB2Id], references: [id], name: "playerB2")
+  teamAScore Int
+  teamBScore Int
+  chatId     String?
+  Chat       Chat?    @relation(fields: [chatId], references: [id])
+}
+
+model Chat {
+  id      String     @id
+  name    String
+  type    String
+  users   User[]
+  match   Match[]
+}
