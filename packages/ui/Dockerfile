@@ -9,13 +9,14 @@ COPY package*.json ./
 COPY packages/ui/package*.json ./packages/ui/
 COPY packages/db/package*.json ./packages/db/
 
-# Install dependencies (cached unless package files change)
-RUN npm ci --workspaces --include-workspace-root
+# Install dependencies without running postinstall (cached unless package files change)
+RUN npm ci --workspaces --include-workspace-root --ignore-scripts
 
 # Copy source code
 COPY packages ./packages
 
-# Build application
+# Generate Prisma client and build
+RUN npm run -w @volley/db generate
 RUN npm run -w @volley/ui build
 
 # --- runtime stage ---
