@@ -1,10 +1,10 @@
 services:
   ui:
     build:
-      context: ./packages/ui
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: packages/ui/Dockerfile
     env_file:
-      - ./packages/ui/.env
+      - packages/ui/.env
     restart: unless-stopped
     networks:
       - appnet
