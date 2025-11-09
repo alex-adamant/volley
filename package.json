@@ -1,0 +1,15 @@
+{
+  "name": "volley",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "npm run -ws build",
+    "dev": "npm run -ws dev",
+    "lint": "npm run -ws lint",
+    "migrate:dev": "npm --workspace @volley/db run migrate:dev",
+    "migrate:deploy": "npm --workspace @volley/db run migrate:deploy",
+    "generate": "npm --workspace @volley/db run generate"
+  }
+}
