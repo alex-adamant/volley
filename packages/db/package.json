@@ -9,9 +9,6 @@
     "migrate:deploy": "prisma migrate deploy",
     "studio": "prisma studio"
   },
-  "prisma": {
-    "schema": "prisma/schema.prisma"
-  },
   "keywords": [],
   "author": "Alex Adamant",
   "license": "ISC",
