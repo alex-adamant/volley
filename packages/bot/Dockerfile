@@ -26,6 +26,11 @@ RUN npm run -w @volley/bot build
 # --- runtime stage ---
 FROM node:24-bookworm-slim
 WORKDIR /app
+
+RUN apt-get update -y \
+ && apt-get install -y openssl \
+ && rm -rf /var/lib/apt/lists/* \
+
 ENV NODE_ENV=production PORT=4000
 
 # Copy built application and dependencies
