@@ -1,7 +1,5 @@
 import { session, Telegraf } from "telegraf";
 import express from "express";
-import Redis from "ioredis";
-import { prisma } from "./utils/db";
 import { BotContext } from "./types";
 import { chatSettings } from "./commands/set-up-chat";
 import { gamesGeneration } from "./commands/games";
@@ -13,7 +11,6 @@ import { flipPlayers } from "./commands/flip";
 import { ratingCalculation } from "./commands/rating";
 import { deleteMessage, voidMessage } from "./commands/shared";
 import { sessionStore } from "./utils/session";
-import { redis } from "./utils/redis";
 
 const PORT = Number(process.env.PORT || 4000);
 const TOKEN = process.env.TELEGRAM_TOKEN!;
