@@ -95,13 +95,18 @@ export function matchGeneration(bot: Telegraf<BotContext>) {
     const teamAScore = messageSession.winner === 0 ? winnerPoints : loserPoints;
     const teamBScore = messageSession.winner === 1 ? winnerPoints : loserPoints;
 
+    const chatId = ctx.session.contextChatId ?? ctx.chat?.id.toString();
+    if (!chatId) {
+      throw new Error("Chat ID is not defined");
+    }
+
     await prisma.match.create({
       data: {
         playerA1Id: messageSession.players[0],
         playerA2Id: messageSession.players[1],
         playerB1Id: messageSession.players[2],
         playerB2Id: messageSession.players[3],
-        chatId: ctx.session.contextChatId ?? ctx.chat?.id.toString(),
+        chatId,
         teamAScore,
         teamBScore,
         day: new Date(),

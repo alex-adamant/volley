@@ -225,13 +225,18 @@ export function leagueGeneration(bot: Telegraf<BotContext>) {
         data: { teamAScore, teamBScore },
       });
     } else {
+      const chatId = ctx.session.contextChatId ?? ctx.chat?.id.toString();
+      if (!chatId) {
+        throw new Error("Chat ID is not defined");
+      }
+
       const result = await prisma.match.create({
         data: {
           playerA1Id: match.teams[0],
           playerA2Id: match.teams[1],
           playerB1Id: match.teams[2],
           playerB2Id: match.teams[3],
-          chatId: ctx.session.contextChatId ?? ctx.chat?.id.toString(),
+          chatId,
           teamAScore,
           teamBScore,
           day: new Date(),
