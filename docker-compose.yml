@@ -5,9 +5,9 @@ services:
       dockerfile: packages/ui/Dockerfile
     env_file:
       - packages/ui/.env
-    restart: unless-stopped
     networks:
       - appnet
+    restart: unless-stopped
     depends_on:
       - db-wait
 
