@@ -7,18 +7,18 @@ export async function load({ params }) {
   const { userId, slug } = params;
 
   const users = await prisma.chatUser.findMany({
-    where: { chat: { slug } },
-    include: { user: true },
+    where: { Chat: { is: { slug } } },
+    include: { User: true },
   });
 
-  const user = users.find((u) => u.user.id === Number(userId));
+  const user = users.find((u) => u.User.id === Number(userId));
 
   if (!user) {
     throw new Error("User not found");
   }
 
   const matches = await prisma.match.findMany({
-    where: { chat: { slug } },
+    where: { Chat: { is: { slug } } },
     orderBy: { id: "asc" },
   });
 
@@ -30,5 +30,5 @@ export async function load({ params }) {
     throw new Error("Result not found");
   }
 
-  return { user: user.user, result };
+  return { user: user.User, result };
 }

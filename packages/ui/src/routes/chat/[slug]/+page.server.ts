@@ -1,7 +1,5 @@
-import { PrismaClient } from "@prisma/client";
+import { prisma } from "$lib/server/prisma";
 import { calculateResults } from "$lib/rating";
-
-const prisma = new PrismaClient();
 
 export async function load({ params, url }) {
   const slug = params.slug;
@@ -9,13 +7,13 @@ export async function load({ params, url }) {
   const showHidden = url.searchParams.get("showHidden") === "true";
 
   const users = await prisma.chatUser.findMany({
-    where: { chat: { slug } },
-    include: { user: true },
+    where: { Chat: { is: { slug } } },
+    include: { User: true },
     orderBy: { userId: "asc" },
   });
 
   const matches = await prisma.match.findMany({
-    where: { chat: { slug } },
+    where: { Chat: { is: { slug } } },
     orderBy: { id: "asc" },
   });
 

@@ -18,12 +18,12 @@ model User {
   initialGames     Int        @default(0)
   telegramUsername String?
   isAdmin          Boolean    @default(false)
+  chatUsers        ChatUser[]
   playerA1         Match[]    @relation("playerA1")
   playerA2         Match[]    @relation("playerA2")
   playerB1         Match[]    @relation("playerB1")
   playerB2         Match[]    @relation("playerB2")
   chats            Chat[]     @relation("ChatToUser")
-  chatUsers        ChatUser[]
 }
 
 model Match {
@@ -36,8 +36,8 @@ model Match {
   teamAScore Int
   teamBScore Int
   league     Int
-  chatId     String?
-  Chat       Chat?    @relation(fields: [chatId], references: [id])
+  chatId     String
+  Chat       Chat     @relation(fields: [chatId], references: [id])
   playerA1   User     @relation("playerA1", fields: [playerA1Id], references: [id])
   playerA2   User     @relation("playerA2", fields: [playerA2Id], references: [id])
   playerB1   User     @relation("playerB1", fields: [playerB1Id], references: [id])
@@ -48,9 +48,10 @@ model Chat {
   id        String     @id
   type      String
   name      String
+  slug      String     @unique
+  chatUsers ChatUser[]
   match     Match[]
   users     User[]     @relation("ChatToUser")
-  chatUsers ChatUser[]
 }
 
 model ChatUser {

@@ -23,13 +23,13 @@ export interface PlayerResult extends ChatUser, User {
 }
 
 export function calculateResults(
-  players: (ChatUser & { user: User })[],
+  players: (ChatUser & { User: User })[],
   matches: Match[],
 ) {
-  const chatId = matches[0].chatId.toString();
+  const chatId = matches[0].chatId?.toString();
   const playerResults: PlayerResult[] = players.map((p) => ({
     ...p,
-    ...p.user,
+    ...p.User,
     rating: firstChatId === chatId ? p.initialRating : 1500,
     games: firstChatId === chatId ? p.initialGames : 0,
     wins: 0,
