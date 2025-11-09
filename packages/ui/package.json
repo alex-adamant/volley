@@ -41,8 +41,8 @@
     "vitest": "^1.2.0"
   },
   "dependencies": {
-    "@volley/db": "*",
     "@prisma/client": "5.x",
+    "@volley/db": "*",
     "chart.js": "^4.4.2",
     "tailwind-merge": "^2.2.2"
   },

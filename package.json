@@ -11,5 +11,8 @@
     "migrate:dev": "npm --workspace @volley/db run migrate:dev",
     "migrate:deploy": "npm --workspace @volley/db run migrate:deploy",
     "generate": "npm --workspace @volley/db run generate"
+  },
+  "devDependencies": {
+    "@types/node": "^24.10.0"
   }
 }
