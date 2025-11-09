@@ -13,9 +13,9 @@
   "author": "Alex Adamant",
   "license": "ISC",
   "dependencies": {
-    "@prisma/client": "^5.12.1"
+    "@prisma/client": "^6.19.0"
   },
   "devDependencies": {
-    "prisma": "^5.12.1"
+    "prisma": "^6.19.0"
   }
 }
