@@ -12,7 +12,7 @@ COPY packages/ui/package.json packages/ui/package.json
 COPY packages/db/package.json packages/db/package.json
 
 # 3) Install all workspace deps (root + workspaces)
-RUN npm ci --workspaces --include-workspace-root
+RUN npm install --workspaces --include-workspace-root
 
 # 4) Copy sources after deps are cached
 COPY packages/db/prisma packages/db/prisma
