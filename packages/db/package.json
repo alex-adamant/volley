@@ -4,10 +4,13 @@
   "description": "Shared Prisma database client for Volley monorepo",
   "main": "index.js",
   "scripts": {
-    "generate": "prisma generate --schema prisma/schema.prisma",
-    "migrate:dev": "prisma migrate dev --schema prisma/schema.prisma",
-    "migrate:deploy": "prisma migrate deploy --schema prisma/schema.prisma",
-    "studio": "prisma studio --schema prisma/schema.prisma"
+    "generate": "prisma generate",
+    "migrate:dev": "prisma migrate dev",
+    "migrate:deploy": "prisma migrate deploy",
+    "studio": "prisma studio"
+  },
+  "prisma": {
+    "schema": "prisma/schema.prisma"
   },
   "keywords": [],
   "author": "Alex Adamant",

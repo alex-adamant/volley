@@ -1,0 +1,10 @@
+node_modules
+.git
+.env
+*.log
+dist
+build
+.svelte-kit
+coverage
+.vscode
+.idea

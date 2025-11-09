@@ -8,9 +8,9 @@
     "build": "npm run -ws build",
     "dev": "npm run -ws dev",
     "lint": "npm run -ws lint",
-    "migrate:dev": "npm --workspace @volley/db run migrate:dev",
-    "migrate:deploy": "npm --workspace @volley/db run migrate:deploy",
-    "generate": "npm --workspace @volley/db run generate && npm --workspace @volley/ui run postinstall"
+    "migrate:dev": "npm run -w @volley/db migrate:dev",
+    "migrate:deploy": "npm run -w @volley/db migrate:deploy",
+    "generate": "npm run -w @volley/db generate"
   },
   "devDependencies": {
     "@types/node": "^24.10.0"

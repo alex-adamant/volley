@@ -4,18 +4,19 @@
 FROM node:24-bookworm-slim AS build
 WORKDIR /app
 
-# 1) Copy root manifests first (must include workspaces + lockfile)
-COPY package.json package-lock.json ./
+# Copy package files for dependency installation
+COPY package*.json ./
+COPY packages/ui/package*.json ./packages/ui/
+COPY packages/db/package*.json ./packages/db/
 
-# 2) Copy all source code (needed for workspace install)
+# Install dependencies (cached unless package files change)
+RUN npm ci --workspaces --include-workspace-root
+
+# Copy source code
 COPY packages ./packages
 
-# 3) Install all workspace deps (root + workspaces)
-RUN npm install --workspaces --include-workspace-root
-
-# 4) Generate Prisma client for UI and build
-RUN npm --workspace @volley/ui run postinstall
-RUN npm --workspace @volley/ui run build
+# Build application
+RUN npm run -w @volley/ui build
 
 # --- runtime stage ---
 FROM node:24-bookworm-slim
