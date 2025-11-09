@@ -41,11 +41,10 @@ bot.action(deleteMessage, (ctx) => ctx.deleteMessage());
 bot.action(voidMessage, (ctx) => ctx.answerCbQuery("Кнопка не активна"));
 
 app.post("/", async (req, res) => {
-  if (req.method === "POST") {
-    await bot.handleUpdate(req.body, res);
-  } else {
-    res.status(200).send(`Hello, this is your Telegram bot!`);
-  }
+  await bot.handleUpdate(req.body, res);
+});
+app.get("/", (req, res) => {
+  res.status(200).send(`Hello, this is your Telegram bot!`);
 });
 
 app.listen(PORT, () => {
