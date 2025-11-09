@@ -1,8 +1,8 @@
 import { session, Telegraf } from "telegraf";
-import { VercelRequest, VercelResponse } from "@vercel/node";
+import express from "express";
+import Redis from "ioredis";
 import { prisma } from "./utils/db";
 import { BotContext } from "./types";
-import { kvStore } from "./utils/session";
 import { chatSettings } from "./commands/set-up-chat";
 import { gamesGeneration } from "./commands/games";
 import { matchGeneration } from "./commands/match";
@@ -12,15 +12,25 @@ import { dice } from "./commands/dice";
 import { flipPlayers } from "./commands/flip";
 import { ratingCalculation } from "./commands/rating";
 import { deleteMessage, voidMessage } from "./commands/shared";
+import { sessionStore } from "./utils/session";
+import { redis } from "./utils/redis";
+
+const PORT = Number(process.env.PORT || 4000);
+const TOKEN = process.env.TELEGRAM_TOKEN!;
+
+if (!TOKEN) throw new Error("TELEGRAM_TOKEN is required");
 
 const bot = new Telegraf<BotContext>(process.env.TELEGRAM_TOKEN!);
 
-bot.use(
-  session({
-    store: kvStore,
-    getSessionKey: (ctx) => ctx.chat?.id.toString(),
-  }),
-);
+const sessionMiddleware = session({
+  store: sessionStore,
+  getSessionKey: (ctx) => ctx.chat?.id.toString(),
+});
+
+bot.use(sessionMiddleware);
+
+const app = express();
+app.use(express.json({ limit: "1mb" }));
 
 playersActivation(bot);
 dice(bot);
@@ -33,12 +43,14 @@ chatSettings(bot);
 bot.action(deleteMessage, (ctx) => ctx.deleteMessage());
 bot.action(voidMessage, (ctx) => ctx.answerCbQuery("Кнопка не активна"));
 
-export default async (req: VercelRequest, res: VercelResponse) => {
+app.post("/", async (req, res) => {
   if (req.method === "POST") {
     await bot.handleUpdate(req.body, res);
-    await prisma.$disconnect();
   } else {
     res.status(200).send(`Hello, this is your Telegram bot!`);
-    await prisma.$disconnect();
   }
-};
+});
+
+app.listen(PORT, () => {
+  console.log(`Bot listening on http://localhost:${PORT}`);
+});

@@ -1,5 +1,9 @@
-import { kv } from "@vercel/kv";
 import { BotContext, BotSession, SessionMessage } from "../types";
+import { redis } from "./redis";
+
+const PREFIX = "tg:sess:";
+const TTL_SEC = 60 * 60 * 24 * 7;
+const getKey = (key: string) => `${PREFIX}${key}`;
 
 export function getInitialSession(): BotSession {
   return {
@@ -20,15 +24,16 @@ function getInitialMessageContext(): SessionMessage {
   };
 }
 
-export const kvStore = {
+export const sessionStore = {
   async get(key: string) {
-    return ((await kv.get(key)) as BotSession) || getInitialSession();
+    const raw = await redis.get(getKey(key));
+    return raw ? (JSON.parse(raw) as BotSession) : getInitialSession();
   },
   async set(key: string, session: BotSession) {
-    await kv.set(key, session);
+    await redis.set(getKey(key), JSON.stringify(session), "EX", TTL_SEC);
   },
   async delete(key: string) {
-    await kv.del(key);
+    await redis.del(getKey(key));
   },
 };
 

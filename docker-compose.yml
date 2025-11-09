@@ -11,6 +11,18 @@ services:
     depends_on:
       - db-wait
 
+  bot:
+    build:
+      context: .
+      dockerfile: packages/bot/Dockerfile
+    env_file:
+      - packages/bot/.env
+    networks:
+      - appnet
+    restart: unless-stopped
+    depends_on:
+      - db-wait
+
   db-wait:
     image: bash:5.2
     command: bash -lc 'until echo > /dev/tcp/db/5432; do echo waiting for db; sleep 1; done'
