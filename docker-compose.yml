@@ -1,0 +1,22 @@
+services:
+  ui:
+    build:
+      context: ./packages/ui
+      dockerfile: Dockerfile
+    env_file:
+      - ./packages/ui/.env
+    restart: unless-stopped
+    networks:
+      - appnet
+    depends_on:
+      - db-wait
+
+  db-wait:
+    image: bash:5.2
+    command: bash -lc 'until echo > /dev/tcp/db/5432; do echo waiting for db; sleep 1; done'
+    networks:
+      - appnet
+
+networks:
+  appnet:
+    external: true
