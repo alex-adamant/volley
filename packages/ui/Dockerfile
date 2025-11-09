@@ -7,18 +7,13 @@ WORKDIR /app
 # 1) Copy root manifests first (must include workspaces + lockfile)
 COPY package.json package-lock.json ./
 
-# 2) Copy workspace manifests only (for better caching)
-COPY packages/ui/package.json packages/ui/package.json
-COPY packages/db/package.json packages/db/package.json
+# 2) Copy all source code (needed for workspace install)
+COPY packages ./packages
 
 # 3) Install all workspace deps (root + workspaces)
 RUN npm install --workspaces --include-workspace-root
 
-# 4) Copy sources after deps are cached
-COPY packages/db/prisma packages/db/prisma
-COPY packages/ui packages/ui
-
-# 5) Generate Prisma client for UI and build
+# 4) Generate Prisma client for UI and build
 RUN npm --workspace @volley/ui run postinstall
 RUN npm --workspace @volley/ui run build
 
@@ -33,4 +28,4 @@ COPY --from=build /app/packages/ui/package.json ./package.json
 COPY --from=build /app/node_modules ./node_modules
 
 EXPOSE 3000
-CMD ["node","build/index.js"] 
+CMD ["node","build/index.js"]
