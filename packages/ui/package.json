@@ -13,10 +13,11 @@
     "format": "prettier --write .",
     "test:integration": "playwright test",
     "test:unit": "vitest",
-    "postinstall": "npm run generate -w @volley/db"
+    "postinstall": "prisma generate --schema ../db/prisma/schema.prisma"
   },
   "devDependencies": {
     "@playwright/test": "^1.28.1",
+    "@prisma/client": "5.x",
     "@sveltejs/adapter-auto": "^3.0.0",
     "@sveltejs/kit": "^2.0.0",
     "@sveltejs/vite-plugin-svelte": "^3.0.0",
@@ -41,6 +42,7 @@
   },
   "dependencies": {
     "@volley/db": "*",
+    "@prisma/client": "5.x",
     "chart.js": "^4.4.2",
     "tailwind-merge": "^2.2.2"
   },
