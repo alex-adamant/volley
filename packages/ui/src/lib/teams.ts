@@ -1,5 +1,4 @@
 import type { Match, User } from "@prisma/client";
-import { calculateWinrate } from "$lib/index";
 
 interface TeamStats {
   games: number;
@@ -48,7 +47,7 @@ export function getTeamStats(players: User[], matches: Match[]) {
 
   return [...teamStats.values()]
     .sort(
-      (a, b) => calculateWinrate(b) - calculateWinrate(a) || b.games - a.games,
+      (a, b) => b.wins - b.losses - (a.wins - a.losses) || b.games - a.games,
     )
     .filter((t) => t.games > 0);
 }

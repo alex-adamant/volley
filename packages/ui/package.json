@@ -1,7 +1,7 @@
 {
   "name": "@volley/ui",
-  "version": "0.0.1",
-  "private": true,
+  "version": "0.1.0",
+  "private": false,
   "scripts": {
     "dev": "vite dev",
     "build": "vite build",
@@ -44,7 +44,8 @@
     "@prisma/client": "5.x",
     "@volley/db": "*",
     "chart.js": "^4.4.2",
-    "tailwind-merge": "^2.2.2"
+    "prisma": "^5.12.1",
+    "tailwind-merge": "^2.4.0"
   },
   "type": "module"
 }
