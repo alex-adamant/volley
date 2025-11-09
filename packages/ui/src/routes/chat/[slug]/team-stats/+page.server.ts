@@ -1,18 +1,16 @@
-import { PrismaClient } from "@prisma/client";
 import { getTeamStats } from "$lib/teams";
-
-const prisma = new PrismaClient();
+import { prisma } from "$lib/server/prisma";
 
 export async function load({ params }) {
   const slug = params.slug;
 
   const users = await prisma.user.findMany({
-    where: { chatUser: { some: { chat: { slug } } } },
+    where: { chatUsers: { some: { Chat: { slug } } } },
     orderBy: { id: "asc" },
   });
 
   const matches = await prisma.match.findMany({
-    where: { chat: { slug } },
+    where: { Chat: { slug } },
     orderBy: { id: "asc" },
   });
 

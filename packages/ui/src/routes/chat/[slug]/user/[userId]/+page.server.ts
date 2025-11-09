@@ -1,7 +1,5 @@
-import { PrismaClient } from "@prisma/client";
 import { calculateResults } from "$lib/rating";
-
-const prisma = new PrismaClient();
+import { prisma } from "$lib/server/prisma";
 
 export async function load({ params }) {
   const { userId, slug } = params;
