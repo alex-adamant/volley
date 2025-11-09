@@ -4,6 +4,8 @@
 FROM node:24-bookworm-slim AS build
 WORKDIR /app
 
+RUN apt-get update -y && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
+
 # 1️⃣ Copy manifests for workspace install
 COPY package*.json ./
 COPY packages/bot/package*.json ./packages/bot/
