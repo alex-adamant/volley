@@ -6,7 +6,7 @@ export function flipPlayers(bot: Telegraf<BotContext>) {
     if (!ctx.message || !("text" in ctx.message) || !ctx.message.text) {
       return ctx.reply("Please send a message with the list of players");
     }
-    console.log("chatId: ", ctx.chat?.id);
+
     const playerList = ctx.message.text.split(/[,\s]/).slice(1).filter(Boolean);
 
     if (playerList.length < 2) {

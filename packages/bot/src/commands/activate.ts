@@ -1,6 +1,7 @@
 import { Markup, Telegraf } from "telegraf";
 import { BotContext } from "../types";
 import {
+  getChatId,
   insertActiveUsersToSession,
   insertInactiveUsersToSession,
   requireAdmin,
@@ -27,10 +28,16 @@ export function playersActivation(bot: Telegraf<BotContext>) {
 
   bot.action(/^activate_(\d+)$/, async (ctx) => {
     const userId = Number(ctx.match[1]);
-    const user = await prisma.user.update({
-      where: { id: userId },
+    const chatId = getChatId(ctx);
+
+    await prisma.chatUser.updateMany({
+      where: { chatId, userId },
       data: { isActive: true },
     });
+
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new Error("User not found");
+
     await ctx.editMessageText(`User is active now: ${user.name}`);
   });
 
@@ -51,10 +58,16 @@ export function playersActivation(bot: Telegraf<BotContext>) {
 
   bot.action(/^deactivate_(\d+)$/, async (ctx) => {
     const userId = Number(ctx.match[1]);
-    const user = await prisma.user.update({
-      where: { id: userId },
+    const chatId = getChatId(ctx);
+
+    await prisma.chatUser.updateMany({
+      where: { chatId, userId },
       data: { isActive: false },
     });
+
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new Error("User not found");
+
     await ctx.editMessageText(`User is inactive now: ${user.name}`);
   });
 }

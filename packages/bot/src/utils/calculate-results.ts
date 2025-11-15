@@ -1,7 +1,7 @@
-import { User } from "@prisma/client";
+import { ChatUser, User } from "@prisma/client";
 import { prisma } from "./db";
 
-interface PlayerResult extends User {
+interface PlayerResult extends User, ChatUser {
   rating: number;
   games: number;
   previousPlace: number | null;
@@ -29,7 +29,7 @@ export async function calculateResults(chatId: string) {
 
     return {
       ...p,
-      isActive: p.isActive,
+      ...chatUser,
       rating: firstChatId === chatId.toString() ? chatUser.initialRating : 1500,
       games: firstChatId === chatId.toString() ? chatUser.initialGames : 0,
       placeLowest: 0,

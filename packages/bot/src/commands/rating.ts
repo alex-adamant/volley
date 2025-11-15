@@ -4,6 +4,7 @@ import { Markup, Telegraf } from "telegraf";
 import { BotContext } from "../types";
 import { deleteMessage } from "./shared";
 import { fmt, pre } from "telegraf/format";
+import { getChatId } from "../utils/middleware";
 
 const btn = Markup.button.callback;
 
@@ -24,8 +25,7 @@ export function ratingCalculation(bot: Telegraf<BotContext>) {
 }
 
 async function getRatingMessage(ctx: BotContext) {
-  const chatId = ctx.session.contextChatId ?? ctx.chat?.id.toString();
-  if (!chatId) throw new Error("Chat not found");
+  const chatId = getChatId(ctx);
   const playerResults = await calculateResults(chatId);
 
   const sortedPlayers = playerResults

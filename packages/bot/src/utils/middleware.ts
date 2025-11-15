@@ -6,6 +6,7 @@ import { User } from "@prisma/client";
 export const requireAdmin: Middleware<BotContext> = async (ctx, next) => {
   const userId = ctx.from?.id;
   const name = ctx.from?.username;
+  const chatId = getChatId(ctx);
 
   if (!userId) return;
 
@@ -13,8 +14,10 @@ export const requireAdmin: Middleware<BotContext> = async (ctx, next) => {
     where: {
       OR: [{ telegramId: userId?.toString() }, { telegramUsername: name }],
     },
+    include: { chatUsers: { where: { chatId } } },
   });
   if (!user) return;
+  const chatUser = user.chatUsers[0];
 
   if (!user.telegramId) {
     await prisma.user.update({
@@ -23,7 +26,7 @@ export const requireAdmin: Middleware<BotContext> = async (ctx, next) => {
     });
   }
 
-  if (user?.isAdmin) return next();
+  if (chatUser?.isAdmin) return next();
 
   await ctx.reply("This command is only available for admins");
 };
@@ -60,7 +63,7 @@ export const insertAllUsersToSession: Middleware<BotContext> = async (
   ctx,
   next,
 ) => {
-  const chatId = ctx.session.contextChatId ?? ctx.chat?.id.toString();
+  const chatId = getChatId(ctx);
   ctx.session.users = await getChatUsers(chatId);
   ctx.session.usersById = getUsersById(ctx.session.users);
 
@@ -72,7 +75,7 @@ export const insertActiveUsersToSession: Middleware<BotContext> = async (
   next,
 ) => {
   try {
-    const chatId = ctx.session.contextChatId ?? ctx.chat?.id.toString();
+    const chatId = getChatId(ctx);
     ctx.session.users = await getActiveUsers(chatId);
     ctx.session.usersById = getUsersById(ctx.session.users);
 
@@ -87,9 +90,15 @@ export const insertInactiveUsersToSession: Middleware<BotContext> = async (
   ctx,
   next,
 ) => {
-  const chatId = ctx.session.contextChatId ?? ctx.chat?.id.toString();
+  const chatId = getChatId(ctx);
   ctx.session.users = await getInactiveUsers(chatId);
   ctx.session.usersById = getUsersById(ctx.session.users);
 
   return await next();
 };
+
+export function getChatId(ctx: BotContext) {
+  const chatId = ctx.session.contextChatId ?? ctx.chat?.id.toString();
+  if (!chatId) throw new Error("Chat ID is not defined");
+  return chatId;
+}
