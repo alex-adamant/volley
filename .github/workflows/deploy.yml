@@ -1,0 +1,28 @@
+name: Deploy to Hetzner
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout (just for completeness)
+        uses: actions/checkout@v4
+
+      - name: Setup SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.VOLLEY_DEPLOY_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -H ${{ secrets.VOLLEY_HOST }} >> ~/.ssh/known_hosts
+        env:
+          VOLLEY_HOST: ${{ secrets.VOLLEY_HOST }}
+
+      - name: Run deploy script on server
+        run: |
+          ssh -i ~/.ssh/id_ed25519 \
+            ${{ secrets.VOLLEY_USER }}@${{ secrets.VOLLEY_HOST }} \
+            '~/apps/scripts/deploy-volley.sh'
