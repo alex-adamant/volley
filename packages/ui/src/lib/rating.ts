@@ -4,7 +4,12 @@ const GAMES_CUTOFF = 30;
 
 const firstChatId = "-1001849842756";
 
-export interface PlayerResult extends ChatUser, User {
+export interface PlayerResult
+  extends ChatUser,
+    Omit<
+      User,
+      "initialGames" | "initialRating" | "isActive" | "isHidden" | "isAdmin"
+    > {
   rating: number;
   ratingHistory: number[];
   games: number;
@@ -28,8 +33,8 @@ export function calculateResults(
 ) {
   const chatId = matches[0].chatId?.toString();
   const playerResults: PlayerResult[] = players.map((p) => ({
-    ...p,
     ...p.User,
+    ...p,
     rating: firstChatId === chatId ? p.initialRating : 1500,
     games: firstChatId === chatId ? p.initialGames : 0,
     wins: 0,
