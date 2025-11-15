@@ -21,22 +21,27 @@ const firstChatId = "-1001849842756";
 export async function calculateResults(chatId: string) {
   const players = await prisma.user.findMany({
     where: { chats: { some: { id: chatId } } },
+    include: { chatUsers: { where: { chatId } } },
   });
 
-  const playerResults: PlayerResult[] = players.map((p) => ({
-    ...p,
-    isActive: p.isActive,
-    rating: firstChatId === chatId.toString() ? p.initialRating : 1500,
-    games: firstChatId === chatId.toString() ? p.initialGames : 0,
-    placeLowest: 0,
-    placeHighest: 100,
-    ratingHighest: 0,
-    ratingLowest: 2000,
-    previousPlace: null,
-    previousRating: null,
-    ratingChange: 0,
-    placeChange: 0,
-  }));
+  const playerResults: PlayerResult[] = players.map((p) => {
+    const chatUser = p.chatUsers[0];
+
+    return {
+      ...p,
+      isActive: p.isActive,
+      rating: firstChatId === chatId.toString() ? chatUser.initialRating : 1500,
+      games: firstChatId === chatId.toString() ? chatUser.initialGames : 0,
+      placeLowest: 0,
+      placeHighest: 100,
+      ratingHighest: 0,
+      ratingLowest: 2000,
+      previousPlace: null,
+      previousRating: null,
+      ratingChange: 0,
+      placeChange: 0,
+    };
+  });
 
   const getPlayerResult = (id: number) => {
     const player = playerResults.find((p) => p.id === id);
