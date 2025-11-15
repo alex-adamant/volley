@@ -13,12 +13,12 @@ model User {
   id               Int        @id @default(autoincrement())
   name             String
   telegramId       String?
-  isActive         Boolean    @default(true)
-  isHidden         Boolean    @default(false)
-  initialRating    Int        @default(1500)
-  initialGames     Int        @default(0)
+  isActive         Boolean?   @default(true)
+  isHidden         Boolean?   @default(false)
+  initialRating    Int?       @default(1500)
+  initialGames     Int?       @default(0)
   telegramUsername String?
-  isAdmin          Boolean    @default(false)
+  isAdmin          Boolean?   @default(false)
   chatUsers        ChatUser[]
   playerA1         Match[]    @relation("playerA1")
   playerA2         Match[]    @relation("playerA2")

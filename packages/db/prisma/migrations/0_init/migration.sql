@@ -55,10 +55,11 @@ CREATE TABLE "ChatUser" (
 -- CreateTable
 CREATE TABLE "_ChatToUser" (
     "A" TEXT NOT NULL,
-    "B" INTEGER NOT NULL,
-
-    CONSTRAINT "_ChatToUser_AB_pkey" PRIMARY KEY ("A","B")
+    "B" INTEGER NOT NULL
 );
+
+-- CreateIndex
+CREATE UNIQUE INDEX "_ChatToUser_AB_unique" ON "_ChatToUser"("A","B");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "Chat_slug_key" ON "Chat"("slug");
