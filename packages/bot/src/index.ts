@@ -46,6 +46,7 @@ app.post("/", async (req, res) => {
 app.get("/", (req, res) => {
   res.status(200).send(`Hello, this is your Telegram bot!`);
 });
+app.get("/health", (_req, res) => res.send("ok"));
 
 app.listen(PORT, () => {
   console.log(`Bot listening on http://localhost:${PORT}`);
