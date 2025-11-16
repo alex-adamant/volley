@@ -16,32 +16,34 @@ interface PlayerResult extends User, ChatUser {
 
 const GAMES_CUTOFF = 30;
 
-const firstChatId = "-1001849842756";
+const initialPlayerResult = {
+  placeLowest: 0,
+  placeHighest: 100,
+  ratingHighest: 0,
+  ratingLowest: 2000,
+  previousPlace: null,
+  previousRating: null,
+  ratingChange: 0,
+  placeChange: 0,
+};
 
 export async function calculateResults(chatId: string) {
-  const players = await prisma.user.findMany({
-    where: { chats: { some: { id: chatId } } },
-    include: { chatUsers: { where: { chatId } } },
+  const chatUsers = await prisma.chatUser.findMany({
+    where: { chatId },
+    include: { User: true },
   });
 
-  const playerResults: PlayerResult[] = players.map((p) => {
-    const chatUser = p.chatUsers[0];
-
-    return {
-      ...p,
-      ...chatUser,
-      rating: firstChatId === chatId.toString() ? chatUser.initialRating : 1500,
-      games: firstChatId === chatId.toString() ? chatUser.initialGames : 0,
-      placeLowest: 0,
-      placeHighest: 100,
-      ratingHighest: 0,
-      ratingLowest: 2000,
-      previousPlace: null,
-      previousRating: null,
-      ratingChange: 0,
-      placeChange: 0,
-    };
-  });
+  const playerResults: PlayerResult[] = chatUsers.map(
+    ({ User, ...chatUser }) => {
+      return {
+        ...User,
+        ...chatUser,
+        rating: chatUser.initialRating,
+        games: chatUser.initialGames,
+        ...initialPlayerResult,
+      };
+    },
+  );
 
   const getPlayerResult = (id: number) => {
     const player = playerResults.find((p) => p.id === id);

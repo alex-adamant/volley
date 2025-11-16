@@ -15,11 +15,10 @@ model User {
   telegramId       String?
   telegramUsername String?
   chatUsers        ChatUser[]
-  playerA1         Match[]    @relation("playerA1")
-  playerA2         Match[]    @relation("playerA2")
-  playerB1         Match[]    @relation("playerB1")
-  playerB2         Match[]    @relation("playerB2")
-  chats            Chat[]     @relation("ChatToUser")
+  playerA1         Match[]    @relation("playerA1") @ignore
+  playerA2         Match[]    @relation("playerA2") @ignore
+  playerB1         Match[]    @relation("playerB1") @ignore
+  playerB2         Match[]    @relation("playerB2") @ignore
 }
 
 model Match {
@@ -47,7 +46,6 @@ model Chat {
   slug      String     @unique
   chatUsers ChatUser[]
   match     Match[]
-  users     User[]     @relation("ChatToUser")
 }
 
 model ChatUser {

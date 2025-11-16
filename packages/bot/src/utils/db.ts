@@ -15,10 +15,3 @@ export async function getInactiveUsers(chatId: string) {
     orderBy: { name: "asc" },
   });
 }
-
-export async function getChatUsers(chatId: string) {
-  return prisma.user.findMany({
-    where: { chats: { some: { id: chatId } } },
-    orderBy: { name: "asc" },
-  });
-}

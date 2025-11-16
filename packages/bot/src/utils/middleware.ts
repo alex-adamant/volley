@@ -1,5 +1,5 @@
 import { BotContext } from "../types";
-import { getActiveUsers, getChatUsers, getInactiveUsers, prisma } from "./db";
+import { getActiveUsers, getInactiveUsers, prisma } from "./db";
 import { Middleware } from "telegraf";
 import { User } from "@prisma/client";
 
@@ -58,17 +58,6 @@ function getUsersById(users: User[]) {
     {} as Record<number, User>,
   );
 }
-
-export const insertAllUsersToSession: Middleware<BotContext> = async (
-  ctx,
-  next,
-) => {
-  const chatId = getChatId(ctx);
-  ctx.session.users = await getChatUsers(chatId);
-  ctx.session.usersById = getUsersById(ctx.session.users);
-
-  return await next();
-};
 
 export const insertActiveUsersToSession: Middleware<BotContext> = async (
   ctx,

@@ -2,14 +2,7 @@ import type { ChatUser, Match, User } from "@prisma/client";
 
 const GAMES_CUTOFF = 30;
 
-const firstChatId = "-1001849842756";
-
-export interface PlayerResult
-  extends ChatUser,
-    Omit<
-      User,
-      "initialGames" | "initialRating" | "isActive" | "isHidden" | "isAdmin"
-    > {
+export interface PlayerResult extends ChatUser, User {
   rating: number;
   ratingHistory: number[];
   games: number;
@@ -31,15 +24,14 @@ export function calculateResults(
   players: (ChatUser & { User: User })[],
   matches: Match[],
 ) {
-  const chatId = matches[0].chatId?.toString();
   const playerResults: PlayerResult[] = players.map((p) => ({
     ...p.User,
     ...p,
-    rating: firstChatId === chatId ? p.initialRating : 1500,
-    games: firstChatId === chatId ? p.initialGames : 0,
+    rating: p.initialRating,
+    games: p.initialGames,
     wins: 0,
     losses: 0,
-    ratingHistory: [firstChatId === chatId ? p.initialRating : 1500],
+    ratingHistory: [p.initialRating],
     placeLowest: 0,
     placeHighest: 100,
     previousPlace: null,
@@ -51,8 +43,6 @@ export function calculateResults(
     longestWinStreak: 0,
     longestLossStreak: 0,
   }));
-
-  // console.log(playerResults);
 
   const getPlayerResult = (id: number) => {
     const player = playerResults.find((p) => p.id === id);
