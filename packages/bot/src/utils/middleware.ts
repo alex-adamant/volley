@@ -18,8 +18,6 @@ export const requireAdmin: Middleware<BotContext> = async (ctx, next) => {
   });
   if (!user) return;
 
-  console.log("---===user===---:", user);
-
   const chatUser = user.chatUsers[0];
 
   if (!user.telegramId) {
@@ -29,7 +27,11 @@ export const requireAdmin: Middleware<BotContext> = async (ctx, next) => {
     });
   }
 
-  if (chatUser?.isAdmin) return next();
+  if (!chatUser) {
+    throw new Error("Chat user not found");
+  }
+
+  if (chatUser.isAdmin) return next();
 
   await ctx.reply("This command is only available for admins");
 };
