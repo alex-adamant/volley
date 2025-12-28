@@ -31,6 +31,7 @@ export async function calculateResults(
   chatId: string,
   options?: { startDate?: Date; endDate?: Date },
 ) {
+  const isSeason = !!options?.startDate;
   const chatUsers = await prisma.chatUser.findMany({
     where: { chatId },
     include: { User: true },
@@ -38,7 +39,6 @@ export async function calculateResults(
 
   const playerResults: PlayerResult[] = chatUsers.map(
     ({ User, ...chatUser }) => {
-      const isSeason = !!options?.startDate;
       return {
         ...User,
         ...chatUser,
@@ -88,10 +88,10 @@ export async function calculateResults(
 
     const ratingDifference = A1.rating + A2.rating - B1.rating - B2.rating;
 
-    updateAfterMatch(A1, -ratingDifference, teamAResult, L);
-    updateAfterMatch(A2, -ratingDifference, teamAResult, L);
-    updateAfterMatch(B1, ratingDifference, teamBResult, L);
-    updateAfterMatch(B2, ratingDifference, teamBResult, L);
+    updateAfterMatch(A1, -ratingDifference, teamAResult, L, isSeason);
+    updateAfterMatch(A2, -ratingDifference, teamAResult, L, isSeason);
+    updateAfterMatch(B1, ratingDifference, teamBResult, L, isSeason);
+    updateAfterMatch(B2, ratingDifference, teamBResult, L, isSeason);
 
     const isLastDay = Number(index) === matches.length - 1;
     const hasDayChanged =
@@ -119,7 +119,7 @@ export async function calculateResults(
       }
 
       console.log(
-        `Active players, ${match.day.toLocaleDateString("rus", {
+        `Active players, ${match.day.toLocaleDateString("ru-RU", {
           month: "long",
           day: "numeric",
         })}`,
@@ -139,7 +139,7 @@ export async function calculateResults(
     .sort((a, b) => b.rating - a.rating);
 
   console.log(
-    `Active players, ${matches.at(-1)?.day.toLocaleDateString("rus", {
+    `Active players, ${matches.at(-1)?.day.toLocaleDateString("ru-RU", {
       month: "long",
       day: "numeric",
     })}`,
@@ -160,12 +160,23 @@ function updateAfterMatch(
   ratingDifference: number,
   score: number,
   L: number,
+  isSeason: boolean,
 ) {
   const expectedScore = 1 / (1 + 10 ** (ratingDifference / 400));
 
+  let kModifier = 1.0;
+  if (isSeason) {
+    if (playerResult.games < GAMES_CUTOFF) {
+      kModifier = 1.0 + (GAMES_CUTOFF - playerResult.games) / GAMES_CUTOFF;
+    }
+  } else {
+    if (playerResult.games < GAMES_CUTOFF) {
+      kModifier = 2.0;
+    }
+  }
+
   playerResult.rating = Math.round(
-    playerResult.rating +
-      (playerResult.games < GAMES_CUTOFF ? L * 2 : L) * (score - expectedScore),
+    playerResult.rating + L * kModifier * (score - expectedScore),
   );
   playerResult.games += 1;
 }
