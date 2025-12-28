@@ -23,15 +23,17 @@ export interface PlayerResult extends ChatUser, User {
 export function calculateResults(
   players: (ChatUser & { User: User })[],
   matches: Match[],
+  options?: { startDate?: Date; endDate?: Date },
 ) {
+  const isSeason = !!options?.startDate;
   const playerResults: PlayerResult[] = players.map((p) => ({
     ...p.User,
     ...p,
-    rating: p.initialRating,
-    games: p.initialGames,
+    rating: isSeason ? 1500 : p.initialRating,
+    games: isSeason ? 0 : p.initialGames,
     wins: 0,
     losses: 0,
-    ratingHistory: [p.initialRating],
+    ratingHistory: [isSeason ? 1500 : p.initialRating],
     placeLowest: 0,
     placeHighest: 100,
     previousPlace: null,
