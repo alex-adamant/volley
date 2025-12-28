@@ -27,7 +27,10 @@ const initialPlayerResult = {
   placeChange: 0,
 };
 
-export async function calculateResults(chatId: string) {
+export async function calculateResults(
+  chatId: string,
+  options?: { startDate?: Date; endDate?: Date },
+) {
   const chatUsers = await prisma.chatUser.findMany({
     where: { chatId },
     include: { User: true },
@@ -35,11 +38,12 @@ export async function calculateResults(chatId: string) {
 
   const playerResults: PlayerResult[] = chatUsers.map(
     ({ User, ...chatUser }) => {
+      const isSeason = !!options?.startDate;
       return {
         ...User,
         ...chatUser,
-        rating: chatUser.initialRating,
-        games: chatUser.initialGames,
+        rating: isSeason ? 1500 : chatUser.initialRating,
+        games: isSeason ? 0 : chatUser.initialGames,
         ...initialPlayerResult,
       };
     },
@@ -53,7 +57,13 @@ export async function calculateResults(chatId: string) {
 
   const matches = await prisma.match.findMany({
     orderBy: { id: "asc" },
-    where: { chatId },
+    where: {
+      chatId,
+      day: {
+        gte: options?.startDate,
+        lte: options?.endDate,
+      },
+    },
   });
 
   for (const [index, match] of Object.entries(matches)) {

@@ -13,6 +13,11 @@ const options = Markup.inlineKeyboard([
   btn("Спрятать", deleteMessage),
 ]);
 
+const seasonOptions = Markup.inlineKeyboard([
+  btn("Обновить", "rating_season_refresh"),
+  btn("Спрятать", deleteMessage),
+]);
+
 export function ratingCalculation(bot: Telegraf<BotContext>) {
   bot.command(["players-rating", "r"], async (ctx) => {
     const message = await getRatingMessage(ctx);
@@ -22,18 +27,37 @@ export function ratingCalculation(bot: Telegraf<BotContext>) {
     const message = await getRatingMessage(ctx);
     await ctx.editMessageText(message, options);
   });
+
+  bot.command(["rs"], async (ctx) => {
+    const message = await getRatingMessage(ctx, true);
+    await ctx.reply(message, seasonOptions);
+  });
+  bot.action("rating_season_refresh", async (ctx) => {
+    const message = await getRatingMessage(ctx, true);
+    await ctx.editMessageText(message, seasonOptions);
+  });
 }
 
-async function getRatingMessage(ctx: BotContext) {
+async function getRatingMessage(ctx: BotContext, isSeason = false) {
   const chatId = getChatId(ctx);
-  const playerResults = await calculateResults(chatId);
+  const playerResults = await calculateResults(
+    chatId,
+    isSeason
+      ? {
+          startDate: new Date("2025-12-15"),
+          endDate: new Date("2026-06-01"),
+        }
+      : undefined,
+  );
 
   const sortedPlayers = playerResults
     .filter((p) => p.isActive && !p.isHidden)
     .sort((a, b) => b.rating - a.rating);
 
+  const title = isSeason ? "Рейтинг сезона" : "Рейтинг";
+
   return fmt`
-${pre("")`Рейтинг на ${new Date().toLocaleDateString("RU", {
+${pre("")`${title} на ${new Date().toLocaleDateString("RU", {
   timeZone: "Asia/Bangkok",
   hour: "numeric",
   minute: "numeric",
