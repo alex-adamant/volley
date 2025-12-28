@@ -1,31 +1,16 @@
 import { BotContext } from "../types";
-import { getActiveUsers, getInactiveUsers, prisma } from "./db";
+import { getActiveUsers, getInactiveUsers, prisma, getChatUser } from "./db";
 import { Middleware } from "telegraf";
 import { User } from "@prisma/client";
+import { identifyUser, getChatId } from "./context";
 
 export const requireAdmin: Middleware<BotContext> = async (ctx, next) => {
-  const userId = ctx.from?.id;
-  const name = ctx.from?.username;
   const chatId = getChatId(ctx);
 
-  if (!userId) return;
-
-  const user = await prisma.user.findFirst({
-    where: {
-      OR: [{ telegramId: userId?.toString() }, { telegramUsername: name }],
-    },
-    include: { chatUsers: { where: { chatId } } },
-  });
+  const user = await identifyUser(ctx);
   if (!user) return;
 
-  const chatUser = user.chatUsers[0];
-
-  if (!user.telegramId) {
-    await prisma.user.update({
-      where: { id: user.id },
-      data: { telegramId: userId.toString() },
-    });
-  }
+  const chatUser = await getChatUser(user.id, chatId);
 
   if (!chatUser) {
     throw new Error("Chat user not found");
@@ -41,8 +26,11 @@ export const requireChat: Middleware<BotContext> = async (ctx, next) => {
     if (ctx.session.contextChatId) {
       return await next();
     }
-    const chat = await prisma.chat.findFirst({
-      where: { id: ctx.chat?.id?.toString() },
+    const chatId = ctx.chat?.id?.toString();
+    if (!chatId) return;
+
+    const chat = await prisma.chat.findUnique({
+      where: { id: chatId },
     });
 
     if (chat) {
@@ -90,9 +78,3 @@ export const insertInactiveUsersToSession: Middleware<BotContext> = async (
 
   return await next();
 };
-
-export function getChatId(ctx: BotContext) {
-  const chatId = ctx.session.contextChatId ?? ctx.chat?.id.toString();
-  if (!chatId) throw new Error("Chat ID is not defined");
-  return chatId;
-}

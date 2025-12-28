@@ -1,6 +1,7 @@
 import { Markup, Telegraf } from "telegraf";
 import { BotContext } from "../types";
 import { insertActiveUsersToSession, requireChat } from "../utils/middleware";
+import { getChatId } from "../utils/context";
 import {
   getCallbackMessageSession,
   resetMessageSession,
@@ -95,10 +96,7 @@ export function matchGeneration(bot: Telegraf<BotContext>) {
     const teamAScore = messageSession.winner === 0 ? winnerPoints : loserPoints;
     const teamBScore = messageSession.winner === 1 ? winnerPoints : loserPoints;
 
-    const chatId = ctx.session.contextChatId ?? ctx.chat?.id.toString();
-    if (!chatId) {
-      throw new Error("Chat ID is not defined");
-    }
+    const chatId = getChatId(ctx);
 
     await prisma.match.create({
       data: {

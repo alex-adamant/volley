@@ -4,7 +4,7 @@ import { Markup, Telegraf } from "telegraf";
 import { BotContext } from "../types";
 import { deleteMessage } from "./shared";
 import { fmt, pre } from "telegraf/format";
-import { getChatId } from "../utils/middleware";
+import { getChatId } from "../utils/context";
 
 const btn = Markup.button.callback;
 

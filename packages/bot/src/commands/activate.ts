@@ -1,11 +1,11 @@
 import { Markup, Telegraf } from "telegraf";
 import { BotContext } from "../types";
 import {
-  getChatId,
   insertActiveUsersToSession,
   insertInactiveUsersToSession,
   requireAdmin,
 } from "../utils/middleware";
+import { getChatId } from "../utils/context";
 import { prisma } from "../utils/db";
 
 const btn = Markup.button.callback;
