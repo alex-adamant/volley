@@ -8,6 +8,9 @@ export const requireAdmin: Middleware<BotContext> = async (ctx, next) => {
   const name = ctx.from?.username;
   const chatId = getChatId(ctx);
 
+  console.log("---===userId===---:", userId);
+  console.log("---===name===---:", name);
+
   if (!userId) return;
 
   const user = await prisma.user.findFirst({
