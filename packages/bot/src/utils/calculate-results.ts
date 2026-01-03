@@ -16,17 +16,6 @@ interface PlayerResult extends User, ChatUser {
 
 const GAMES_CUTOFF = 30;
 
-const initialPlayerResult = {
-  placeLowest: 0,
-  placeHighest: 100,
-  ratingHighest: 0,
-  ratingLowest: 2000,
-  previousPlace: null,
-  previousRating: null,
-  ratingChange: 0,
-  placeChange: 0,
-};
-
 export async function calculateResults(
   chatId: string,
   options?: { startDate?: Date; endDate?: Date },
@@ -39,12 +28,20 @@ export async function calculateResults(
 
   const playerResults: PlayerResult[] = chatUsers.map(
     ({ User, ...chatUser }) => {
+      const rating = isSeason ? 1500 : chatUser.initialRating;
       return {
         ...User,
         ...chatUser,
-        rating: isSeason ? 1500 : chatUser.initialRating,
+        rating,
         games: isSeason ? 0 : chatUser.initialGames,
-        ...initialPlayerResult,
+        placeLowest: 0,
+        placeHighest: 100,
+        ratingHighest: rating,
+        ratingLowest: rating,
+        previousPlace: null,
+        previousRating: rating,
+        ratingChange: 0,
+        placeChange: 0,
       };
     },
   );
@@ -95,7 +92,8 @@ export async function calculateResults(
 
     const isLastDay = Number(index) === matches.length - 1;
     const hasDayChanged =
-      match.day.getDate() !== matches[Number(index) + 1]?.day.getDate();
+      match.day.toDateString() !==
+      matches[Number(index) + 1]?.day.toDateString();
 
     const sortedPlayers = playerResults
       .filter((p) => p.isActive && !p.isHidden)

@@ -26,25 +26,28 @@ export function calculateResults(
   options?: { startDate?: Date; endDate?: Date },
 ) {
   const isSeason = !!options?.startDate;
-  const playerResults: PlayerResult[] = players.map((p) => ({
-    ...p.User,
-    ...p,
-    rating: isSeason ? 1500 : p.initialRating,
-    games: isSeason ? 0 : p.initialGames,
-    wins: 0,
-    losses: 0,
-    ratingHistory: [isSeason ? 1500 : p.initialRating],
-    placeLowest: 0,
-    placeHighest: 100,
-    previousPlace: null,
-    previousRating: null,
-    ratingChange: 0,
-    placeChange: 0,
-    winStreak: 0,
-    lossStreak: 0,
-    longestWinStreak: 0,
-    longestLossStreak: 0,
-  }));
+  const playerResults: PlayerResult[] = players.map((p) => {
+    const rating = isSeason ? 1500 : p.initialRating;
+    return {
+      ...p.User,
+      ...p,
+      rating: rating,
+      games: isSeason ? 0 : p.initialGames,
+      wins: 0,
+      losses: 0,
+      ratingHistory: [rating],
+      placeLowest: 0,
+      placeHighest: 100,
+      previousPlace: null,
+      previousRating: rating,
+      ratingChange: 0,
+      placeChange: 0,
+      winStreak: 0,
+      lossStreak: 0,
+      longestWinStreak: 0,
+      longestLossStreak: 0,
+    };
+  });
 
   const getPlayerResult = (id: number) => {
     const player = playerResults.find((p) => p.id === id);
@@ -81,7 +84,8 @@ export function calculateResults(
 
     const isLastDay = Number(index) === matches.length - 1;
     const hasDayChanged =
-      match.day.getUTCDate() !== matches[Number(index) + 1]?.day.getUTCDate();
+      match.day.toDateString() !==
+      matches[Number(index) + 1]?.day.toDateString();
 
     const sortedPlayers = playerResults
       .filter((p) => p.isActive && !p.isHidden)
