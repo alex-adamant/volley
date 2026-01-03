@@ -44,7 +44,7 @@ async function getRatingMessage(ctx: BotContext, isSeason = false) {
     chatId,
     isSeason
       ? {
-          startDate: new Date("2025-12-15"),
+          startDate: new Date("2026-01-01"),
           endDate: new Date("2026-06-01"),
         }
       : undefined,
