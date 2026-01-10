@@ -3,6 +3,13 @@ services:
     build:
       context: .
       dockerfile: packages/ui/Dockerfile
+
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
     env_file:
       - packages/ui/.env
     networks:
@@ -27,6 +34,13 @@ services:
     build:
       context: .
       dockerfile: packages/bot/Dockerfile
+
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
     env_file:
       - packages/bot/.env
     networks:
