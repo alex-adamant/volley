@@ -87,10 +87,10 @@ export function calculateResults(
 
     const ratingDifference = A1.rating + A2.rating - B1.rating - B2.rating;
 
-    updateAfterMatch(A1, -ratingDifference, teamAResult, L);
-    updateAfterMatch(A2, -ratingDifference, teamAResult, L);
-    updateAfterMatch(B1, ratingDifference, teamBResult, L);
-    updateAfterMatch(B2, ratingDifference, teamBResult, L);
+    updateAfterMatch(A1, -ratingDifference, teamAResult, L, isSeason);
+    updateAfterMatch(A2, -ratingDifference, teamAResult, L, isSeason);
+    updateAfterMatch(B1, ratingDifference, teamBResult, L, isSeason);
+    updateAfterMatch(B2, ratingDifference, teamBResult, L, isSeason);
 
     A1.pointsFor += teamAScore;
     A1.pointsAgainst += teamBScore;
@@ -142,11 +142,21 @@ function updateAfterMatch(
   ratingDifference: number,
   score: number,
   L: number,
+  isSeason: boolean,
 ) {
   const expectedScore = 1 / (1 + 10 ** (ratingDifference / 400));
 
+  let kModifier = 1.0;
+  if (isSeason) {
+    if (r.games < GAMES_CUTOFF) {
+      kModifier = 1.0 + (GAMES_CUTOFF - r.games) / GAMES_CUTOFF;
+    }
+  } else if (r.games < GAMES_CUTOFF) {
+    kModifier = 2.0;
+  }
+
   r.rating = Math.round(
-    r.rating + (r.games < GAMES_CUTOFF ? L * 2 : L) * (score - expectedScore),
+    r.rating + L * kModifier * (score - expectedScore),
   );
   r.ratingHistory.push(r.rating);
   r.games += 1;
