@@ -41,3 +41,10 @@ export async function getInactiveUsers(chatId: string) {
     orderBy: { name: "asc" },
   });
 }
+
+export async function getActiveSeason(chatId: string) {
+  return prisma.season.findFirst({
+    where: { chatId },
+    orderBy: [{ isActive: "desc" }, { startDate: "desc" }],
+  });
+}

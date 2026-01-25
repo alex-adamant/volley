@@ -46,6 +46,7 @@ model Chat {
   slug      String     @unique
   chatUsers ChatUser[]
   match     Match[]
+  seasons   Season[]
 }
 
 model ChatUser {
@@ -60,4 +61,36 @@ model ChatUser {
   User          User    @relation(fields: [userId], references: [id])
 
   @@id([chatId, userId])
+}
+
+model Season {
+  id        Int       @id @default(autoincrement())
+  chatId    String
+  name      String
+  startDate DateTime
+  endDate   DateTime?
+  isActive  Boolean   @default(false)
+  createdAt DateTime  @default(now())
+  Chat      Chat      @relation(fields: [chatId], references: [id])
+
+  @@index([chatId])
+}
+
+model AdminUser {
+  id           Int            @id @default(autoincrement())
+  username     String         @unique
+  passwordHash String
+  salt         String
+  createdAt    DateTime       @default(now())
+  sessions     AdminSession[]
+}
+
+model AdminSession {
+  id          String    @id
+  adminUserId Int
+  createdAt   DateTime  @default(now())
+  expiresAt   DateTime
+  AdminUser   AdminUser @relation(fields: [adminUserId], references: [id], onDelete: Cascade)
+
+  @@index([adminUserId])
 }

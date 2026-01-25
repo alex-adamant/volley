@@ -5,6 +5,7 @@ import { BotContext } from "../types";
 import { deleteMessage } from "./shared";
 import { fmt, pre } from "telegraf/format";
 import { getChatId } from "../utils/context";
+import { getActiveSeason } from "../utils/db";
 
 const btn = Markup.button.callback;
 
@@ -40,12 +41,20 @@ export function ratingCalculation(bot: Telegraf<BotContext>) {
 
 async function getRatingMessage(ctx: BotContext, isSeason = false) {
   const chatId = getChatId(ctx);
+  const season = isSeason ? await getActiveSeason(chatId) : null;
+  const fallbackSeason = {
+    startDate: new Date("2026-01-01"),
+    endDate: new Date("2026-06-01"),
+  };
+  const seasonStart = season?.startDate ?? fallbackSeason.startDate;
+  const seasonEnd = season?.endDate ?? (season ? new Date() : fallbackSeason.endDate);
+
   const playerResults = await calculateResults(
     chatId,
     isSeason
       ? {
-          startDate: new Date("2026-01-01"),
-          endDate: new Date("2026-06-01"),
+          startDate: seasonStart,
+          endDate: seasonEnd,
         }
       : undefined,
   );
@@ -54,7 +63,9 @@ async function getRatingMessage(ctx: BotContext, isSeason = false) {
     .filter((p) => p.isActive && !p.isHidden)
     .sort((a, b) => b.rating - a.rating);
 
-  const title = isSeason ? "Рейтинг сезона" : "Рейтинг";
+  const title = isSeason
+    ? `Рейтинг сезона${season?.name ? `: ${season.name}` : ""}`
+    : "Рейтинг";
 
   return fmt`
 ${pre("")`${title} на ${new Date().toLocaleDateString("RU", {

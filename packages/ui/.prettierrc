@@ -1,5 +1,6 @@
 {
   "tailwindFunctions": ["twMerge"],
-	"plugins": ["prettier-plugin-svelte", "prettier-plugin-tailwindcss"],
-	"overrides": [{ "files": "*.svelte", "options": { "parser": "svelte" } }]
+  "svelte5CompilerPath": "../svelte/compiler",
+  "plugins": ["prettier-plugin-svelte", "prettier-plugin-tailwindcss"],
+  "overrides": [{ "files": "*.svelte", "options": { "parser": "svelte" } }]
 }

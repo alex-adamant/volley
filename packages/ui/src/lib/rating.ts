@@ -8,6 +8,11 @@ export interface PlayerResult extends ChatUser, User {
   games: number;
   wins: number;
   losses: number;
+  pointsFor: number;
+  pointsAgainst: number;
+  pointDiff: number;
+  avgPointsFor: number;
+  avgPointsAgainst: number;
   previousPlace: number | null;
   previousRating: number | null;
   placeLowest: number;
@@ -35,6 +40,11 @@ export function calculateResults(
       games: isSeason ? 0 : p.initialGames,
       wins: 0,
       losses: 0,
+      pointsFor: 0,
+      pointsAgainst: 0,
+      pointDiff: 0,
+      avgPointsFor: 0,
+      avgPointsAgainst: 0,
       ratingHistory: [rating],
       placeLowest: 0,
       placeHighest: 100,
@@ -82,6 +92,15 @@ export function calculateResults(
     updateAfterMatch(B1, ratingDifference, teamBResult, L);
     updateAfterMatch(B2, ratingDifference, teamBResult, L);
 
+    A1.pointsFor += teamAScore;
+    A1.pointsAgainst += teamBScore;
+    A2.pointsFor += teamAScore;
+    A2.pointsAgainst += teamBScore;
+    B1.pointsFor += teamBScore;
+    B1.pointsAgainst += teamAScore;
+    B2.pointsFor += teamBScore;
+    B2.pointsAgainst += teamAScore;
+
     const isLastDay = Number(index) === matches.length - 1;
     const hasDayChanged =
       match.day.toDateString() !==
@@ -105,6 +124,14 @@ export function calculateResults(
         result.previousRating = result.rating;
       }
     }
+  }
+
+  for (const result of playerResults) {
+    result.pointDiff = result.pointsFor - result.pointsAgainst;
+    result.avgPointsFor = result.games ? result.pointsFor / result.games : 0;
+    result.avgPointsAgainst = result.games
+      ? result.pointsAgainst / result.games
+      : 0;
   }
 
   return playerResults.sort((a, b) => b.rating - a.rating);
