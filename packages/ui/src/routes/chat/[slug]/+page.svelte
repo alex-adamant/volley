@@ -38,9 +38,10 @@
     { value: "active", label: "Active" },
     { value: "all", label: "All" },
   ];
-  const statusLabel =
+  const statusLabel = $derived(
     statusOptions.find((option) => option.value === statusValue)?.label ??
-    "Status";
+      "Status",
+  );
 
   let lastRangeKey = $state("all");
   let lastStatusValue = $state<StatusValue>("active");

@@ -38,9 +38,10 @@
     { value: "active", label: "Active" },
     { value: "all", label: "All" },
   ];
-  const statusLabel =
+  const statusLabel = $derived(
     statusOptions.find((option) => option.value === statusValue)?.label ??
-    "Status";
+      "Status",
+  );
 
   const teamSummary = $derived.by(() => {
     const teams = data.teamStats;

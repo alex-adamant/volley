@@ -41,9 +41,10 @@
     { value: "active", label: "Active" },
     { value: "all", label: "All" },
   ];
-  const statusLabel =
+  const statusLabel = $derived(
     statusOptions.find((option) => option.value === statusValue)?.label ??
-    "Status";
+      "Status",
+  );
 
   const dayOptions = $derived(
     data.days.map((day) => ({ value: day.key, label: day.label })),
