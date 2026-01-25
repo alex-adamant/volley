@@ -83,22 +83,10 @@
   const toPathname = (value: string) => value as Pathname;
 
   const buildQuery = (rangeKey: string, statusKey: string, dayKey?: string) => {
-    const params = new SvelteURLSearchParams(page.url.searchParams);
-    if (rangeKey) {
-      params.set("range", rangeKey);
-    } else {
-      params.delete("range");
-    }
-    if (statusKey) {
-      params.set("status", statusKey);
-    } else {
-      params.delete("status");
-    }
-    if (dayKey) {
-      params.set("day", dayKey);
-    } else {
-      params.delete("day");
-    }
+    const params = new SvelteURLSearchParams();
+    if (rangeKey) params.set("range", rangeKey);
+    if (statusKey) params.set("status", statusKey);
+    if (dayKey) params.set("day", dayKey);
     const queryString = params.toString();
     return queryString ? `?${queryString}` : "";
   };
@@ -217,22 +205,33 @@
 
   onMount(() => {
     if (!browser) return;
-    const params = new SvelteURLSearchParams(page.url.searchParams);
+    const params = new SvelteURLSearchParams();
+    const currentRange = page.url.searchParams.get("range");
+    const currentStatus = page.url.searchParams.get("status");
+    const currentDay = page.url.searchParams.get("day");
     const storedRange = localStorage.getItem(rangeStorageKey);
     const storedStatus = localStorage.getItem(statusStorageKey);
     let changed = false;
 
-    if (!params.get("range") && storedRange) {
+    if (currentRange) {
+      params.set("range", currentRange);
+    } else if (storedRange) {
       params.set("range", storedRange);
       rangeValue = storedRange;
       changed = true;
     }
 
-    if (!params.get("status") && storedStatus) {
+    if (currentStatus) {
+      params.set("status", currentStatus);
+    } else if (storedStatus) {
       const normalized = normalizeStatus(storedStatus);
       params.set("status", normalized);
       statusValue = normalized;
       changed = true;
+    }
+
+    if (currentDay) {
+      params.set("day", currentDay);
     }
 
     if (changed) {

@@ -82,6 +82,39 @@ export async function load({ params, url, cookies }) {
       ) / matches.length
     : null;
 
+  const serveStats = matches.reduce(
+    (acc, match) => {
+      const diff = match.teamAScore - match.teamBScore;
+      acc.teamA.diffTotal += diff;
+      acc.teamB.diffTotal -= diff;
+      if (diff > 0) {
+        acc.teamA.wins += 1;
+      } else if (diff < 0) {
+        acc.teamB.wins += 1;
+      }
+      return acc;
+    },
+    {
+      teamA: { games: matches.length, wins: 0, diffTotal: 0 },
+      teamB: { games: matches.length, wins: 0, diffTotal: 0 },
+    },
+  );
+
+  const serveSummary = {
+    teamA: {
+      ...serveStats.teamA,
+      diffAvg: serveStats.teamA.games
+        ? serveStats.teamA.diffTotal / serveStats.teamA.games
+        : null,
+    },
+    teamB: {
+      ...serveStats.teamB,
+      diffAvg: serveStats.teamB.games
+        ? serveStats.teamB.diffTotal / serveStats.teamB.games
+        : null,
+    },
+  };
+
   const formatDay = (value: Date) =>
     new Intl.DateTimeFormat("en-US", {
       month: "short",
@@ -153,6 +186,7 @@ export async function load({ params, url, cookies }) {
       totalPoints,
       averagePoints,
       averageMargin,
+      serveSummary,
       mostActivePlayer,
       bestWinrate,
       biggestMargin,

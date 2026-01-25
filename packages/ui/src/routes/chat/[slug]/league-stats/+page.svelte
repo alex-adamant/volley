@@ -63,18 +63,9 @@
   const toPathname = (value: string) => value as Pathname;
 
   const buildQuery = (rangeKey: string, statusKey: string) => {
-    const params = new SvelteURLSearchParams(page.url.searchParams);
-    if (rangeKey) {
-      params.set("range", rangeKey);
-    } else {
-      params.delete("range");
-    }
-    if (statusKey) {
-      params.set("status", statusKey);
-    } else {
-      params.delete("status");
-    }
-    params.delete("day");
+    const params = new SvelteURLSearchParams();
+    if (rangeKey) params.set("range", rangeKey);
+    if (statusKey) params.set("status", statusKey);
     const queryString = params.toString();
     return queryString ? `?${queryString}` : "";
   };
@@ -120,6 +111,14 @@
     applyStatus(nextStatus);
   };
 
+  const formatDiff = (value: number | null) => {
+    if (value === null) return "—";
+    const rounded = Math.round(value * 10) / 10;
+    const safe = Object.is(rounded, -0) ? 0 : rounded;
+    const prefix = safe > 0 ? "+" : "";
+    return `${prefix}${safe.toFixed(1)}`;
+  };
+
   const navItems = $derived.by(() => {
     const query = buildQuery(rangeValue, statusValue);
     const playersPath = `/chat/${slug}`;
@@ -154,18 +153,24 @@
 
   onMount(() => {
     if (!browser) return;
-    const params = new SvelteURLSearchParams(page.url.searchParams);
+    const params = new SvelteURLSearchParams();
+    const currentRange = page.url.searchParams.get("range");
+    const currentStatus = page.url.searchParams.get("status");
     const storedRange = localStorage.getItem(rangeStorageKey);
     const storedStatus = localStorage.getItem(statusStorageKey);
     let changed = false;
 
-    if (!params.get("range") && storedRange) {
+    if (currentRange) {
+      params.set("range", currentRange);
+    } else if (storedRange) {
       params.set("range", storedRange);
       rangeValue = storedRange;
       changed = true;
     }
 
-    if (!params.get("status") && storedStatus) {
+    if (currentStatus) {
+      params.set("status", currentStatus);
+    } else if (storedStatus) {
       const normalized = normalizeStatus(storedStatus);
       params.set("status", normalized);
       statusValue = normalized;
@@ -349,6 +354,54 @@
       <div class="text-muted-foreground text-[0.65rem]">
         {data.stats.biggestMargin?.day ?? "n/a"}
       </div>
+    </div>
+  </div>
+
+  <div class="border-stroke mt-3 rounded-xl border bg-white/70 p-2">
+    <div
+      class="text-muted-foreground text-[0.6rem] font-semibold tracking-[0.25em] uppercase"
+    >
+      Serve side
+    </div>
+    <div class="mt-2 overflow-x-auto">
+      <table class="w-full min-w-[320px] text-xs">
+        <thead class="text-left">
+          <tr
+            class="text-muted-foreground text-[0.6rem] font-semibold tracking-[0.2em] uppercase"
+          >
+            <th class="px-2 py-2">Side</th>
+            <th class="px-2 py-2 text-right">Games</th>
+            <th class="px-2 py-2 text-right">Wins</th>
+            <th class="px-2 py-2 text-right">Diff/G</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="border-stroke/50 border-b">
+            <td class="px-2 py-2 font-semibold">Team A</td>
+            <td class="px-2 py-2 text-right tabular-nums">
+              {data.stats.serveSummary.teamA.games}
+            </td>
+            <td class="px-2 py-2 text-right tabular-nums">
+              {data.stats.serveSummary.teamA.wins}
+            </td>
+            <td class="px-2 py-2 text-right font-semibold tabular-nums">
+              {formatDiff(data.stats.serveSummary.teamA.diffAvg)}
+            </td>
+          </tr>
+          <tr>
+            <td class="px-2 py-2 font-semibold">Team B</td>
+            <td class="px-2 py-2 text-right tabular-nums">
+              {data.stats.serveSummary.teamB.games}
+            </td>
+            <td class="px-2 py-2 text-right tabular-nums">
+              {data.stats.serveSummary.teamB.wins}
+            </td>
+            <td class="px-2 py-2 text-right font-semibold tabular-nums">
+              {formatDiff(data.stats.serveSummary.teamB.diffAvg)}
+            </td>
+          </tr>
+        </tbody>
+      </table>
     </div>
   </div>
 </section>

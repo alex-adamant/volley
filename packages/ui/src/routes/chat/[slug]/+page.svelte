@@ -64,17 +64,9 @@
   const toPathname = (value: string) => value as Pathname;
 
   const buildQuery = (rangeKey: string, statusKey: string) => {
-    const params = new SvelteURLSearchParams(page.url.searchParams);
-    if (rangeKey) {
-      params.set("range", rangeKey);
-    } else {
-      params.delete("range");
-    }
-    if (statusKey) {
-      params.set("status", statusKey);
-    } else {
-      params.delete("status");
-    }
+    const params = new SvelteURLSearchParams();
+    if (rangeKey) params.set("range", rangeKey);
+    if (statusKey) params.set("status", statusKey);
     const queryString = params.toString();
     return queryString ? `?${queryString}` : "";
   };
@@ -118,6 +110,14 @@
 
   const handleStatusChange = (nextStatus: string) => {
     applyStatus(nextStatus);
+  };
+
+  const formatDiffPerGame = (pointDiff: number, games: number) => {
+    if (!games) return "—";
+    const rounded = Math.round((pointDiff / games) * 10) / 10;
+    const safe = Object.is(rounded, -0) ? 0 : rounded;
+    const prefix = safe > 0 ? "+" : "";
+    return `${prefix}${safe.toFixed(1)}`;
   };
 
   type MatchTooltip = {
@@ -201,18 +201,24 @@
 
   onMount(() => {
     if (!browser) return;
-    const params = new SvelteURLSearchParams(page.url.searchParams);
+    const params = new SvelteURLSearchParams();
+    const currentRange = page.url.searchParams.get("range");
+    const currentStatus = page.url.searchParams.get("status");
     const storedRange = localStorage.getItem(rangeStorageKey);
     const storedStatus = localStorage.getItem(statusStorageKey);
     let changed = false;
 
-    if (!params.get("range") && storedRange) {
+    if (currentRange) {
+      params.set("range", currentRange);
+    } else if (storedRange) {
       params.set("range", storedRange);
       rangeValue = storedRange;
       changed = true;
     }
 
-    if (!params.get("status") && storedStatus) {
+    if (currentStatus) {
+      params.set("status", currentStatus);
+    } else if (storedStatus) {
       const normalized = normalizeStatus(storedStatus);
       params.set("status", normalized);
       statusValue = normalized;
@@ -301,7 +307,7 @@
           <th class="px-2 py-2 text-right">Win%</th>
           <th class="px-2 py-2 text-right">Games</th>
           <th class="px-2 py-2 text-right">Points</th>
-          <th class="px-2 py-2 text-right">Diff</th>
+          <th class="px-2 py-2 text-right">Diff/G</th>
           <th class="px-2 py-2 text-right">Form</th>
         </tr>
       </thead>
@@ -366,7 +372,7 @@
                 {player.pointsFor} / {player.pointsAgainst}
               </td>
               <td class="px-2 py-2 text-right font-semibold tabular-nums">
-                {player.pointDiff > 0 ? "+" : ""}{player.pointDiff}
+                {formatDiffPerGame(player.pointDiff, player.games)}
               </td>
               <td class="overflow-visible px-2 py-2 text-right">
                 <div class="flex justify-end gap-1">

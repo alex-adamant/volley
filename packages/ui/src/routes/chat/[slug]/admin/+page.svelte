@@ -54,24 +54,16 @@
     new Date(value).toLocaleDateString("en-CA");
 
   const buildQuery = (rangeKey: string) => {
-    const params = new SvelteURLSearchParams(page.url.searchParams);
-    if (rangeKey) {
-      params.set("range", rangeKey);
-    } else {
-      params.delete("range");
-    }
+    const params = new SvelteURLSearchParams();
+    if (rangeKey) params.set("range", rangeKey);
     const queryString = params.toString();
     return queryString ? `?${queryString}` : "";
   };
 
   const buildLimitQuery = (nextLimit: number) => {
-    const params = new SvelteURLSearchParams(page.url.searchParams);
+    const params = new SvelteURLSearchParams();
     params.set("limit", String(nextLimit));
-    if (rangeValue) {
-      params.set("range", rangeValue);
-    } else {
-      params.delete("range");
-    }
+    if (rangeValue) params.set("range", rangeValue);
     return `?${params.toString()}`;
   };
 
@@ -124,9 +116,12 @@
 
   onMount(() => {
     if (!browser) return;
-    const params = new SvelteURLSearchParams(page.url.searchParams);
+    const params = new SvelteURLSearchParams();
+    const currentRange = page.url.searchParams.get("range");
     const storedRange = localStorage.getItem(rangeStorageKey);
-    if (!params.get("range") && storedRange) {
+    if (currentRange) {
+      params.set("range", currentRange);
+    } else if (storedRange) {
       params.set("range", storedRange);
       rangeValue = storedRange;
       goto(resolve(toPathname(`${page.url.pathname}?${params.toString()}`)), {
