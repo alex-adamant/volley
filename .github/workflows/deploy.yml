@@ -30,4 +30,4 @@ jobs:
         run: |
           ssh -i ~/.ssh/id_ed25519 \
             ${{ secrets.VOLLEY_USER }}@${{ secrets.VOLLEY_HOST }} \
-            '~/apps/scripts/deploy-volley.sh'
+            '~/apps/volley/scripts/deploy.sh'
