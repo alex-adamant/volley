@@ -11,6 +11,7 @@ export interface TeamStats {
   pointsFor: number;
   pointsAgainst: number;
   pointDiff: number;
+  pointDiffAvg: number;
   avgPointsFor: number;
   avgPointsAgainst: number;
   lastPlayed: Date | null;
@@ -37,6 +38,7 @@ export function getTeamStats(players: User[], matches: Match[]) {
       pointsFor: 0,
       pointsAgainst: 0,
       pointDiff: 0,
+      pointDiffAvg: 0,
       avgPointsFor: 0,
       avgPointsAgainst: 0,
       lastPlayed: null,
@@ -81,6 +83,7 @@ export function getTeamStats(players: User[], matches: Match[]) {
   for (const stats of teamStats.values()) {
     stats.winrate = calculateWinrate(stats);
     stats.pointDiff = stats.pointsFor - stats.pointsAgainst;
+    stats.pointDiffAvg = stats.games ? stats.pointDiff / stats.games : 0;
     stats.avgPointsFor = stats.games ? stats.pointsFor / stats.games : 0;
     stats.avgPointsAgainst = stats.games
       ? stats.pointsAgainst / stats.games
@@ -94,6 +97,8 @@ export function getTeamStats(players: User[], matches: Match[]) {
     .filter((t) => t.games > 0)
     .sort(
       (a, b) =>
-        b.winrate - a.winrate || b.pointDiff - a.pointDiff || b.games - a.games,
+        b.winrate - a.winrate ||
+        b.pointDiffAvg - a.pointDiffAvg ||
+        b.games - a.games,
     );
 }

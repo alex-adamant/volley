@@ -43,6 +43,14 @@
       "Status",
   );
 
+  const formatDiff = (value: number | null) => {
+    if (value === null) return "—";
+    const rounded = Math.round(value * 10) / 10;
+    const safe = Object.is(rounded, -0) ? 0 : rounded;
+    const prefix = safe > 0 ? "+" : "";
+    return `${prefix}${safe.toFixed(1)}`;
+  };
+
   const teamSummary = $derived.by(() => {
     const teams = data.teamStats;
     if (!teams.length) {
@@ -66,7 +74,7 @@
       team.games > best.games ? team : best,
     );
     const bestDiff = teams.reduce((best, team) =>
-      team.pointDiff > best.pointDiff ? team : best,
+      team.pointDiffAvg > best.pointDiffAvg ? team : best,
     );
 
     return {
@@ -83,7 +91,7 @@
       },
       bestDiff: {
         name: `${bestDiff.p1} + ${bestDiff.p2}`,
-        diff: bestDiff.pointDiff,
+        diff: bestDiff.pointDiffAvg,
       },
     };
   });
@@ -343,7 +351,7 @@
                 </div>
               </td>
               <td class="px-2 py-2 text-right font-semibold tabular-nums">
-                {team.pointDiff > 0 ? "+" : ""}{team.pointDiff}
+                {formatDiff(team.pointDiffAvg)}
               </td>
               <td class="px-2 py-2 text-right">
                 <div class="flex justify-end gap-1">
@@ -395,7 +403,9 @@
       {/if}
       {#if teamSummary.bestDiff}
         <div>
-          Best diff: {teamSummary.bestDiff.name} ({teamSummary.bestDiff.diff})
+          Best diff: {teamSummary.bestDiff.name} ({formatDiff(
+            teamSummary.bestDiff.diff,
+          )})
         </div>
       {/if}
     </div>
