@@ -2,6 +2,9 @@ import type { Match, User } from "@prisma/client";
 import { calculateWinrate } from ".";
 import { buildTeamForm, getCurrentStreak } from "./stats";
 
+const WINRATE_PRIOR_GAMES = 8;
+const WINRATE_PRIOR_WINS = WINRATE_PRIOR_GAMES / 2;
+
 export interface TeamStats {
   key: string;
   games: number;
@@ -20,6 +23,14 @@ export interface TeamStats {
   p1: string;
   p2: string;
 }
+
+const getAdjustedWinrate = (stats: TeamStats) => {
+  if (!stats.games) return 0;
+  return (
+    (stats.wins + WINRATE_PRIOR_WINS) /
+    (stats.games + WINRATE_PRIOR_GAMES)
+  );
+};
 
 export function getTeamStats(players: User[], matches: Match[]) {
   const playerMap = new Map(players.map((p) => [p.id, p.name]));
@@ -95,10 +106,14 @@ export function getTeamStats(players: User[], matches: Match[]) {
 
   return [...teamStats.values()]
     .filter((t) => t.games > 0)
-    .sort(
-      (a, b) =>
-        b.winrate - a.winrate ||
-        b.pointDiffAvg - a.pointDiffAvg ||
-        b.games - a.games,
-    );
+    .sort((a, b) => {
+      const adjustedWinrateDiff =
+        getAdjustedWinrate(b) - getAdjustedWinrate(a);
+      if (adjustedWinrateDiff !== 0) return adjustedWinrateDiff;
+      const winsDiff = b.wins - a.wins;
+      if (winsDiff !== 0) return winsDiff;
+      const diffAvg = b.pointDiffAvg - a.pointDiffAvg;
+      if (diffAvg !== 0) return diffAvg;
+      return b.games - a.games;
+    });
 }
