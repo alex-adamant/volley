@@ -6,6 +6,7 @@
   import { browser } from "$app/environment";
   import { onMount } from "svelte";
   import { SvelteURLSearchParams } from "svelte/reactivity";
+  import { localeTag, t } from "$lib/i18n";
   import PrimaryNav from "$lib/components/primary-nav.svelte";
   import * as Select from "$lib/components/ui/select";
 
@@ -31,15 +32,15 @@
   );
   const rangeLabel = $derived(
     rangeOptions.find((option) => option.value === rangeValue)?.label ??
-      "Range",
+      $t("Range"),
   );
-  const statusOptions = [
-    { value: "active", label: "Active" },
-    { value: "all", label: "All" },
-  ];
+  const statusOptions = $derived([
+    { value: "active", label: $t("Active") },
+    { value: "all", label: $t("All") },
+  ]);
   const statusLabel = $derived(
     statusOptions.find((option) => option.value === statusValue)?.label ??
-      "Status",
+      $t("Status"),
   );
 
   let lastRangeKey = $state("all");
@@ -125,27 +126,27 @@
     const playersPath = `/chat/${slug}`;
     return [
       {
-        label: "Players",
+        label: $t("Players"),
         href: toPathname(`${playersPath}${query}`),
         active: page.url.pathname === playersPath,
       },
       {
-        label: "Teams",
+        label: $t("Teams"),
         href: toPathname(`/chat/${slug}/team-stats${query}`),
         active: page.url.pathname === `/chat/${slug}/team-stats`,
       },
       {
-        label: "League Stats",
+        label: $t("League Stats"),
         href: toPathname(`/chat/${slug}/league-stats${query}`),
         active: page.url.pathname === `/chat/${slug}/league-stats`,
       },
       {
-        label: "Results",
+        label: $t("Results"),
         href: toPathname(`/chat/${slug}/day-results${query}`),
         active: page.url.pathname === `/chat/${slug}/day-results`,
       },
       {
-        label: "Admin",
+        label: $t("Admin"),
         href: toPathname(`/chat/${slug}/admin${query}`),
         active: page.url.pathname === `/chat/${slug}/admin`,
       },
@@ -238,10 +239,10 @@
   class="border-stroke shadow-card mt-3 rounded-2xl border bg-white/90 p-3"
 >
   <div class="flex flex-wrap items-end justify-between gap-2">
-    <div class="text-ink text-sm font-semibold">League Stats</div>
+    <div class="text-ink text-sm font-semibold">{$t("League Stats")}</div>
     {#if data.activeRange?.note && rangeValue.startsWith("season")}
       <div
-        class="text-muted-foreground text-[0.6rem] font-semibold tracking-[0.2em] uppercase"
+        class="text-muted-foreground text-xs font-semibold tracking-[0.2em] uppercase"
       >
         {data.activeRange.note}
       </div>
@@ -251,153 +252,167 @@
   <div class="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
     <div class="border-stroke rounded-xl border bg-white/70 p-2">
       <div
-        class="text-muted-foreground text-[0.6rem] font-semibold tracking-[0.25em] uppercase"
+        class="text-muted-foreground text-xs font-semibold tracking-[0.25em] uppercase"
       >
-        Players
+        {$t("Players")}
       </div>
       <div class="mt-2 text-lg font-semibold tabular-nums">
         {data.stats.playersShown}
       </div>
-      <div class="text-muted-foreground text-[0.65rem]">
-        Shown / {data.stats.playersTotal} total
+      <div class="text-muted-foreground text-xs">
+        {$t("Shown / {shown} of {total}", {
+          shown: data.stats.playersShown,
+          total: data.stats.playersTotal,
+        })}
       </div>
     </div>
     <div class="border-stroke rounded-xl border bg-white/70 p-2">
       <div
-        class="text-muted-foreground text-[0.6rem] font-semibold tracking-[0.25em] uppercase"
+        class="text-muted-foreground text-xs font-semibold tracking-[0.25em] uppercase"
       >
-        Matches
+        {$t("Matches")}
       </div>
       <div class="mt-2 text-lg font-semibold tabular-nums">
         {data.stats.matchesTotal}
       </div>
-      <div class="text-muted-foreground text-[0.65rem]">
-        Last {data.stats.lastMatchDay
-          ? new Date(data.stats.lastMatchDay).toLocaleDateString("en-US", {
-              month: "short",
-              day: "numeric",
-            })
-          : "n/a"}
+      <div class="text-muted-foreground text-xs">
+        {$t("Last {date}", {
+          date: data.stats.lastMatchDay
+            ? new Date(data.stats.lastMatchDay).toLocaleDateString($localeTag, {
+                month: "short",
+                day: "numeric",
+              })
+            : $t("n/a"),
+        })}
       </div>
     </div>
     <div class="border-stroke rounded-xl border bg-white/70 p-2">
       <div
-        class="text-muted-foreground text-[0.6rem] font-semibold tracking-[0.25em] uppercase"
+        class="text-muted-foreground text-xs font-semibold tracking-[0.25em] uppercase"
       >
-        Avg rating
+        {$t("Avg rating")}
       </div>
       <div class="mt-2 text-lg font-semibold tabular-nums">
         {data.stats.averageRating ?? "-"}
       </div>
-      <div class="text-muted-foreground text-[0.65rem]">
-        Range {data.stats.ratingLow ?? "-"} → {data.stats.ratingHigh ?? "-"}
+      <div class="text-muted-foreground text-xs">
+        {$t("Range {low} to {high}", {
+          low: data.stats.ratingLow ?? "-",
+          high: data.stats.ratingHigh ?? "-",
+        })}
       </div>
     </div>
     <div class="border-stroke rounded-xl border bg-white/70 p-2">
       <div
-        class="text-muted-foreground text-[0.6rem] font-semibold tracking-[0.25em] uppercase"
+        class="text-muted-foreground text-xs font-semibold tracking-[0.25em] uppercase"
       >
-        Total points
+        {$t("Total points")}
       </div>
       <div class="mt-2 text-lg font-semibold tabular-nums">
         {data.stats.totalPoints}
       </div>
-      <div class="text-muted-foreground text-[0.65rem]">
-        Avg {data.stats.averagePoints?.toFixed(1) ?? "-"} / match
+      <div class="text-muted-foreground text-xs">
+        {$t("Avg {value} / match", {
+          value: data.stats.averagePoints?.toFixed(1) ?? "-",
+        })}
       </div>
     </div>
     <div class="border-stroke rounded-xl border bg-white/70 p-2">
       <div
-        class="text-muted-foreground text-[0.6rem] font-semibold tracking-[0.25em] uppercase"
+        class="text-muted-foreground text-xs font-semibold tracking-[0.25em] uppercase"
       >
-        Games
+        {$t("Games")}
       </div>
       <div class="mt-2 text-lg font-semibold tabular-nums">
         {data.stats.totalGames}
       </div>
-      <div class="text-muted-foreground text-[0.65rem]">
-        Avg {data.stats.averageGames?.toFixed(1) ?? "-"} / player
+      <div class="text-muted-foreground text-xs">
+        {$t("Avg {value} / player", {
+          value: data.stats.averageGames?.toFixed(1) ?? "-",
+        })}
       </div>
     </div>
     <div class="border-stroke rounded-xl border bg-white/70 p-2">
       <div
-        class="text-muted-foreground text-[0.6rem] font-semibold tracking-[0.25em] uppercase"
+        class="text-muted-foreground text-xs font-semibold tracking-[0.25em] uppercase"
       >
-        Margin
+        {$t("Margin")}
       </div>
       <div class="mt-2 text-lg font-semibold tabular-nums">
         {data.stats.averageMargin?.toFixed(1) ?? "-"}
       </div>
-      <div class="text-muted-foreground text-[0.65rem]">Avg point diff</div>
+      <div class="text-muted-foreground text-xs">
+        {$t("Avg point diff")}
+      </div>
     </div>
     <div class="border-stroke rounded-xl border bg-white/70 p-2">
       <div
-        class="text-muted-foreground text-[0.6rem] font-semibold tracking-[0.25em] uppercase"
+        class="text-muted-foreground text-xs font-semibold tracking-[0.25em] uppercase"
       >
-        Closest match
+        {$t("Closest match")}
       </div>
       <div class="mt-2 text-lg font-semibold tabular-nums">
         {data.stats.closestMatch?.value ?? "-"}
       </div>
-      <div class="text-muted-foreground text-[0.65rem]">
-        {data.stats.closestMatch?.day ?? "n/a"}
+      <div class="text-muted-foreground text-xs">
+        {data.stats.closestMatch?.day ?? $t("n/a")}
       </div>
     </div>
     <div class="border-stroke rounded-xl border bg-white/70 p-2">
       <div
-        class="text-muted-foreground text-[0.6rem] font-semibold tracking-[0.25em] uppercase"
+        class="text-muted-foreground text-xs font-semibold tracking-[0.25em] uppercase"
       >
-        Biggest win
+        {$t("Biggest win")}
       </div>
       <div class="mt-2 text-lg font-semibold tabular-nums">
         {data.stats.biggestMargin?.value ?? "-"}
       </div>
-      <div class="text-muted-foreground text-[0.65rem]">
-        {data.stats.biggestMargin?.day ?? "n/a"}
+      <div class="text-muted-foreground text-xs">
+        {data.stats.biggestMargin?.day ?? $t("n/a")}
       </div>
     </div>
   </div>
 
   <div class="border-stroke mt-3 rounded-xl border bg-white/70 p-2">
     <div
-      class="text-muted-foreground text-[0.6rem] font-semibold tracking-[0.25em] uppercase"
+      class="text-muted-foreground text-xs font-semibold tracking-[0.25em] uppercase"
     >
-      Serve side
+      {$t("Serve side")}
     </div>
     <div class="mt-2 overflow-x-auto">
       <table class="w-full min-w-[320px] text-xs">
         <thead class="text-left">
           <tr
-            class="text-muted-foreground text-[0.6rem] font-semibold tracking-[0.2em] uppercase"
+            class="text-muted-foreground text-xs font-semibold tracking-[0.2em] uppercase"
           >
-            <th class="px-2 py-2">Side</th>
-            <th class="px-2 py-2 text-right">Games</th>
-            <th class="px-2 py-2 text-right">Wins</th>
-            <th class="px-2 py-2 text-right">Diff/G</th>
+            <th class="p-2">{$t("Side")}</th>
+            <th class="p-2 text-right">{$t("Games")}</th>
+            <th class="p-2 text-right">{$t("Wins")}</th>
+            <th class="p-2 text-right">{$t("Diff/G")}</th>
           </tr>
         </thead>
         <tbody>
           <tr class="border-stroke/50 border-b">
-            <td class="px-2 py-2 font-semibold">Team A</td>
-            <td class="px-2 py-2 text-right tabular-nums">
+            <td class="p-2 font-semibold">{$t("Team A")}</td>
+            <td class="p-2 text-right tabular-nums">
               {data.stats.serveSummary.teamA.games}
             </td>
-            <td class="px-2 py-2 text-right tabular-nums">
+            <td class="p-2 text-right tabular-nums">
               {data.stats.serveSummary.teamA.wins}
             </td>
-            <td class="px-2 py-2 text-right font-semibold tabular-nums">
+            <td class="p-2 text-right font-semibold tabular-nums">
               {formatDiff(data.stats.serveSummary.teamA.diffAvg)}
             </td>
           </tr>
           <tr>
-            <td class="px-2 py-2 font-semibold">Team B</td>
-            <td class="px-2 py-2 text-right tabular-nums">
+            <td class="p-2 font-semibold">{$t("Team B")}</td>
+            <td class="p-2 text-right tabular-nums">
               {data.stats.serveSummary.teamB.games}
             </td>
-            <td class="px-2 py-2 text-right tabular-nums">
+            <td class="p-2 text-right tabular-nums">
               {data.stats.serveSummary.teamB.wins}
             </td>
-            <td class="px-2 py-2 text-right font-semibold tabular-nums">
+            <td class="p-2 text-right font-semibold tabular-nums">
               {formatDiff(data.stats.serveSummary.teamB.diffAvg)}
             </td>
           </tr>
@@ -410,57 +425,57 @@
 <section
   class="border-stroke shadow-card mt-3 rounded-2xl border bg-white/90 p-3"
 >
-  <div class="text-ink text-sm font-semibold">Leaders</div>
+  <div class="text-ink text-sm font-semibold">{$t("Leaders")}</div>
   <div class="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
     <div class="border-stroke rounded-xl border bg-white/70 p-2">
       <div
-        class="text-muted-foreground text-[0.6rem] font-semibold tracking-[0.25em] uppercase"
+        class="text-muted-foreground text-xs font-semibold tracking-[0.25em] uppercase"
       >
-        Top rating
+        {$t("Top rating")}
       </div>
       <div class="mt-2 text-lg font-semibold">
         {data.leaders.topRating?.name ?? "-"}
       </div>
-      <div class="text-muted-foreground text-[0.65rem]">
+      <div class="text-muted-foreground text-xs">
         {data.leaders.topRating?.rating ?? "-"}
       </div>
     </div>
     <div class="border-stroke rounded-xl border bg-white/70 p-2">
       <div
-        class="text-muted-foreground text-[0.6rem] font-semibold tracking-[0.25em] uppercase"
+        class="text-muted-foreground text-xs font-semibold tracking-[0.25em] uppercase"
       >
-        Best win%
+        {$t("Best win%")}
       </div>
       <div class="mt-2 text-lg font-semibold">
         {data.leaders.bestWinrate?.name ?? "-"}
       </div>
-      <div class="text-muted-foreground text-[0.65rem]">
+      <div class="text-muted-foreground text-xs">
         {data.leaders.bestWinrate?.winrate ?? "-"}%
       </div>
     </div>
     <div class="border-stroke rounded-xl border bg-white/70 p-2">
       <div
-        class="text-muted-foreground text-[0.6rem] font-semibold tracking-[0.25em] uppercase"
+        class="text-muted-foreground text-xs font-semibold tracking-[0.25em] uppercase"
       >
-        Most games
+        {$t("Most games")}
       </div>
       <div class="mt-2 text-lg font-semibold">
         {data.leaders.mostActivePlayer?.name ?? "-"}
       </div>
-      <div class="text-muted-foreground text-[0.65rem]">
+      <div class="text-muted-foreground text-xs">
         {data.leaders.mostActivePlayer?.games ?? "-"}
       </div>
     </div>
     <div class="border-stroke rounded-xl border bg-white/70 p-2">
       <div
-        class="text-muted-foreground text-[0.6rem] font-semibold tracking-[0.25em] uppercase"
+        class="text-muted-foreground text-xs font-semibold tracking-[0.25em] uppercase"
       >
-        Best diff
+        {$t("Best diff")}
       </div>
       <div class="mt-2 text-lg font-semibold">
         {data.leaders.bestDiff?.name ?? "-"}
       </div>
-      <div class="text-muted-foreground text-[0.65rem]">
+      <div class="text-muted-foreground text-xs">
         {data.leaders.bestDiff?.diff ?? "-"}
       </div>
     </div>

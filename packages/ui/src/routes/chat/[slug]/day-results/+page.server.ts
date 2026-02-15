@@ -1,5 +1,5 @@
-import { error } from "@sveltejs/kit";
-import { adminEnabled, isAdmin } from "$lib/server/admin";
+import { error, fail, redirect } from "@sveltejs/kit";
+import { adminEnabled, assertAdmin, isAdmin } from "$lib/server/admin";
 import { prisma } from "$lib/server/prisma";
 import { getRangeOptions } from "$lib/server/ranges";
 
@@ -199,6 +199,13 @@ export async function load({ params, url, cookies }) {
     isToday,
     standings,
     matches: matchViews,
+    playerOptions: chatUsers.map((item) => ({
+      id: item.userId,
+      name: item.User.name,
+      isActive: item.isActive,
+      isHidden: item.isHidden,
+      isAdmin: item.isAdmin,
+    })),
     rangeOptions: rangeOptions.map(({ key, label, note }) => ({
       key,
       label,
@@ -213,3 +220,154 @@ export async function load({ params, url, cookies }) {
     adminEnabled: await adminEnabled(),
   };
 }
+
+const parseDateInput = (value: string) => {
+  const [year, month, day] = value.split("-").map(Number);
+  if (!year || !month || !day) return null;
+  return new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
+};
+
+const hasDuplicatePlayers = (playerIds: number[]) =>
+  new Set(playerIds).size !== playerIds.length;
+
+export const actions = {
+  createMatch: async ({ params, request, cookies, url }) => {
+    await assertAdmin(cookies);
+
+    const data = await request.formData();
+    const playerA1Id = Number(data.get("playerA1Id"));
+    const playerA2Id = Number(data.get("playerA2Id"));
+    const playerB1Id = Number(data.get("playerB1Id"));
+    const playerB2Id = Number(data.get("playerB2Id"));
+    const teamAScore = Number(data.get("teamAScore"));
+    const teamBScore = Number(data.get("teamBScore"));
+    const league = Number(data.get("league"));
+    const dayValue = String(data.get("day") ?? "");
+    const day = parseDateInput(dayValue);
+
+    const players = [playerA1Id, playerA2Id, playerB1Id, playerB2Id];
+    const hasInvalidPlayer = players.some(
+      (value) => !Number.isInteger(value) || value <= 0,
+    );
+
+    if (
+      hasInvalidPlayer ||
+      hasDuplicatePlayers(players) ||
+      Number.isNaN(teamAScore) ||
+      Number.isNaN(teamBScore) ||
+      Number.isNaN(league) ||
+      !day
+    ) {
+      return fail(400, { message: "Invalid match data." });
+    }
+
+    const chat = await prisma.chat.findUnique({ where: { slug: params.slug } });
+    if (!chat) {
+      throw error(404, "Chat not found");
+    }
+
+    await prisma.match.create({
+      data: {
+        day,
+        playerA1Id,
+        playerA2Id,
+        playerB1Id,
+        playerB2Id,
+        teamAScore,
+        teamBScore,
+        league,
+        chatId: chat.id,
+      },
+    });
+
+    const nextParams = new URLSearchParams(url.searchParams);
+    nextParams.set("day", toDayKey(day));
+
+    throw redirect(303, `${url.pathname}?${nextParams.toString()}`);
+  },
+  updateMatch: async ({ request, cookies, params, url }) => {
+    await assertAdmin(cookies);
+
+    const data = await request.formData();
+    const matchId = Number(data.get("matchId"));
+    const playerA1Id = Number(data.get("playerA1Id"));
+    const playerA2Id = Number(data.get("playerA2Id"));
+    const playerB1Id = Number(data.get("playerB1Id"));
+    const playerB2Id = Number(data.get("playerB2Id"));
+    const teamAScore = Number(data.get("teamAScore"));
+    const teamBScore = Number(data.get("teamBScore"));
+    const league = Number(data.get("league"));
+    const dayValue = String(data.get("day") ?? "");
+    const day = parseDateInput(dayValue);
+
+    const players = [playerA1Id, playerA2Id, playerB1Id, playerB2Id];
+    const hasInvalidPlayer = players.some(
+      (value) => !Number.isInteger(value) || value <= 0,
+    );
+
+    if (
+      !matchId ||
+      hasInvalidPlayer ||
+      hasDuplicatePlayers(players) ||
+      Number.isNaN(teamAScore) ||
+      Number.isNaN(teamBScore) ||
+      Number.isNaN(league) ||
+      !day
+    ) {
+      return fail(400, { message: "Invalid match data." });
+    }
+
+    const chat = await prisma.chat.findUnique({ where: { slug: params.slug } });
+    if (!chat) {
+      throw error(404, "Chat not found");
+    }
+
+    const match = await prisma.match.findUnique({ where: { id: matchId } });
+    if (!match || match.chatId !== chat.id) {
+      throw error(404, "Match not found");
+    }
+
+    await prisma.match.update({
+      where: { id: matchId },
+      data: {
+        day,
+        playerA1Id,
+        playerA2Id,
+        playerB1Id,
+        playerB2Id,
+        teamAScore,
+        teamBScore,
+        league,
+      },
+    });
+
+    const nextParams = new URLSearchParams(url.searchParams);
+    nextParams.set("day", toDayKey(day));
+
+    throw redirect(303, `${url.pathname}?${nextParams.toString()}`);
+  },
+  deleteMatch: async ({ request, cookies, params }) => {
+    await assertAdmin(cookies);
+
+    const data = await request.formData();
+    const matchId = Number(data.get("matchId"));
+
+    if (!matchId) {
+      return fail(400, { message: "Invalid match." });
+    }
+
+    const chat = await prisma.chat.findUnique({ where: { slug: params.slug } });
+    if (!chat) {
+      throw error(404, "Chat not found");
+    }
+
+    const match = await prisma.match.findUnique({ where: { id: matchId } });
+    if (!match || match.chatId !== chat.id) {
+      throw error(404, "Match not found");
+    }
+
+    await prisma.match.delete({ where: { id: matchId } });
+
+    return { success: true };
+  },
+};

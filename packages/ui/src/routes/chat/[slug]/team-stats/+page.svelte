@@ -7,6 +7,7 @@
   import { onMount } from "svelte";
   import { SvelteURLSearchParams } from "svelte/reactivity";
   import { twMerge } from "tailwind-merge";
+  import { localeTag, t } from "$lib/i18n";
   import PrimaryNav from "$lib/components/primary-nav.svelte";
   import * as Select from "$lib/components/ui/select";
 
@@ -32,15 +33,15 @@
   );
   const rangeLabel = $derived(
     rangeOptions.find((option) => option.value === rangeValue)?.label ??
-      "Range",
+      $t("Range"),
   );
-  const statusOptions = [
-    { value: "active", label: "Active" },
-    { value: "all", label: "All" },
-  ];
+  const statusOptions = $derived([
+    { value: "active", label: $t("Active") },
+    { value: "all", label: $t("All") },
+  ]);
   const statusLabel = $derived(
     statusOptions.find((option) => option.value === statusValue)?.label ??
-      "Status",
+      $t("Status"),
   );
 
   const formatDiff = (value: number | null) => {
@@ -50,51 +51,6 @@
     const prefix = safe > 0 ? "+" : "";
     return `${prefix}${safe.toFixed(1)}`;
   };
-
-  const teamSummary = $derived.by(() => {
-    const teams = data.teamStats;
-    if (!teams.length) {
-      return {
-        totalTeams: 0,
-        totalGames: 0,
-        avgWinrate: null,
-        bestWinrate: null,
-        mostGames: null,
-        bestDiff: null,
-      };
-    }
-
-    const totalGames = teams.reduce((sum, team) => sum + team.games, 0);
-    const avgWinrate =
-      teams.reduce((sum, team) => sum + team.winrate, 0) / teams.length;
-    const bestWinrate = teams.reduce((best, team) =>
-      team.winrate > best.winrate ? team : best,
-    );
-    const mostGames = teams.reduce((best, team) =>
-      team.games > best.games ? team : best,
-    );
-    const bestDiff = teams.reduce((best, team) =>
-      team.pointDiffAvg > best.pointDiffAvg ? team : best,
-    );
-
-    return {
-      totalTeams: teams.length,
-      totalGames,
-      avgWinrate,
-      bestWinrate: {
-        name: `${bestWinrate.p1} + ${bestWinrate.p2}`,
-        winrate: bestWinrate.winrate,
-      },
-      mostGames: {
-        name: `${mostGames.p1} + ${mostGames.p2}`,
-        games: mostGames.games,
-      },
-      bestDiff: {
-        name: `${bestDiff.p1} + ${bestDiff.p2}`,
-        diff: bestDiff.pointDiffAvg,
-      },
-    };
-  });
 
   let lastRangeKey = $state("all");
   let lastStatusValue = $state<StatusValue>("active");
@@ -171,27 +127,27 @@
     const playersPath = `/chat/${slug}`;
     return [
       {
-        label: "Players",
+        label: $t("Players"),
         href: toPathname(`${playersPath}${query}`),
         active: page.url.pathname === playersPath,
       },
       {
-        label: "Teams",
+        label: $t("Teams"),
         href: toPathname(`/chat/${slug}/team-stats${query}`),
         active: page.url.pathname === `/chat/${slug}/team-stats`,
       },
       {
-        label: "League Stats",
+        label: $t("League Stats"),
         href: toPathname(`/chat/${slug}/league-stats${query}`),
         active: page.url.pathname === `/chat/${slug}/league-stats`,
       },
       {
-        label: "Results",
+        label: $t("Results"),
         href: toPathname(`/chat/${slug}/day-results${query}`),
         active: page.url.pathname === `/chat/${slug}/day-results`,
       },
       {
-        label: "Admin",
+        label: $t("Admin"),
         href: toPathname(`/chat/${slug}/admin${query}`),
         active: page.url.pathname === `/chat/${slug}/admin`,
       },
@@ -284,10 +240,10 @@
   class="border-stroke shadow-card mt-3 rounded-2xl border bg-white/90 p-3"
 >
   <div class="flex flex-wrap items-end justify-between gap-2">
-    <div class="text-ink text-sm font-semibold">Teams</div>
+    <div class="text-ink text-sm font-semibold">{$t("Teams")}</div>
     {#if data.activeRange?.note && rangeValue.startsWith("season")}
       <div
-        class="text-muted-foreground text-[0.6rem] font-semibold tracking-[0.2em] uppercase"
+        class="text-muted-foreground text-xs font-semibold tracking-[0.2em] uppercase"
       >
         {data.activeRange.note}
       </div>
@@ -298,22 +254,22 @@
     <table class="w-full min-w-[640px] text-xs">
       <thead class="bg-white/70 text-left">
         <tr
-          class="text-muted-foreground text-[0.6rem] font-semibold tracking-[0.2em] uppercase"
+          class="text-muted-foreground text-xs font-semibold tracking-[0.2em] uppercase"
         >
-          <th class="px-2 py-2">#</th>
-          <th class="px-2 py-2">Team</th>
-          <th class="px-2 py-2 text-right">Record</th>
-          <th class="px-2 py-2 text-right">Win%</th>
-          <th class="px-2 py-2 text-right">Points</th>
-          <th class="px-2 py-2 text-right">Diff</th>
-          <th class="px-2 py-2 text-right">Form</th>
+          <th class="p-2">#</th>
+          <th class="p-2">{$t("Team")}</th>
+          <th class="p-2 text-right">{$t("Record")}</th>
+          <th class="p-2 text-right">{$t("Win%")}</th>
+          <th class="p-2 text-right">{$t("Points")}</th>
+          <th class="p-2 text-right">{$t("Diff")}</th>
+          <th class="p-2 text-right">{$t("Form")}</th>
         </tr>
       </thead>
       <tbody>
         {#if data.teamStats.length === 0}
           <tr>
             <td class="text-muted-foreground px-2 py-4" colspan="7">
-              No teams found.
+              {$t("No teams found.")}
             </td>
           </tr>
         {:else}
@@ -321,39 +277,41 @@
             <tr
               class="border-stroke/50 border-b transition last:border-b-0 hover:bg-white/70"
             >
-              <td class="px-2 py-2 font-semibold tabular-nums">
+              <td class="p-2 font-semibold tabular-nums">
                 {index + 1}
               </td>
-              <td class="px-2 py-2">
+              <td class="p-2">
                 <div class="font-semibold">{team.p1} + {team.p2}</div>
-                <div class="text-muted-foreground text-[0.65rem]">
-                  {team.games} games · Last
+                <div class="text-muted-foreground text-xs">
+                  {team.games}
+                  {$t("games")} · {$t("Last")}
                   {team.lastPlayed
-                    ? new Date(team.lastPlayed).toLocaleDateString("en-US", {
+                    ? new Date(team.lastPlayed).toLocaleDateString($localeTag, {
                         month: "short",
                         day: "numeric",
                       })
-                    : "n/a"}
+                    : "-"}
                 </div>
               </td>
-              <td class="px-2 py-2 text-right tabular-nums">
+              <td class="p-2 text-right tabular-nums">
                 {team.wins}-{team.losses}
               </td>
-              <td class="px-2 py-2 text-right tabular-nums">
+              <td class="p-2 text-right tabular-nums">
                 {team.winrate}%
               </td>
-              <td class="px-2 py-2 text-right tabular-nums">
+              <td class="p-2 text-right tabular-nums">
                 <div>{team.pointsFor} / {team.pointsAgainst}</div>
-                <div class="text-muted-foreground text-[0.65rem]">
-                  Avg {team.avgPointsFor.toFixed(1)} / {team.avgPointsAgainst.toFixed(
+                <div class="text-muted-foreground text-xs">
+                  {$t("Avg")}
+                  {team.avgPointsFor.toFixed(1)} / {team.avgPointsAgainst.toFixed(
                     1,
                   )}
                 </div>
               </td>
-              <td class="px-2 py-2 text-right font-semibold tabular-nums">
+              <td class="p-2 text-right font-semibold tabular-nums">
                 {formatDiff(team.pointDiffAvg)}
               </td>
-              <td class="px-2 py-2 text-right">
+              <td class="p-2 text-right">
                 <div class="flex justify-end gap-1">
                   {#each team.recentForm as mark, markIndex (markIndex)}
                     <span
@@ -371,43 +329,4 @@
       </tbody>
     </table>
   </div>
-</section>
-
-<section class="mt-3">
-  <details class="border-stroke rounded-2xl border bg-white/70 p-3">
-    <summary
-      class="text-muted-foreground cursor-pointer text-[0.6rem] font-semibold tracking-[0.2em] uppercase"
-    >
-      Team Stats
-    </summary>
-    <div class="text-muted-foreground mt-3 grid gap-2 text-xs md:grid-cols-4">
-      <div>Teams: {teamSummary.totalTeams}</div>
-      <div>Total games: {teamSummary.totalGames}</div>
-      <div>
-        Avg win%:
-        {teamSummary.avgWinrate !== null
-          ? teamSummary.avgWinrate.toFixed(1)
-          : "-"}
-      </div>
-      {#if teamSummary.bestWinrate}
-        <div>
-          Best win%: {teamSummary.bestWinrate.name} ({teamSummary.bestWinrate
-            .winrate}%)
-        </div>
-      {/if}
-      {#if teamSummary.mostGames}
-        <div>
-          Most games: {teamSummary.mostGames.name} ({teamSummary.mostGames
-            .games})
-        </div>
-      {/if}
-      {#if teamSummary.bestDiff}
-        <div>
-          Best diff: {teamSummary.bestDiff.name} ({formatDiff(
-            teamSummary.bestDiff.diff,
-          )})
-        </div>
-      {/if}
-    </div>
-  </details>
 </section>

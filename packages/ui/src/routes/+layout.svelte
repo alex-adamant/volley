@@ -5,6 +5,7 @@
   import { goto } from "$app/navigation";
   import { resolve } from "$app/paths";
   import { browser } from "$app/environment";
+  import { locale, localeOptions, setLocale, t } from "$lib/i18n";
   import * as Select from "$lib/components/ui/select";
 
   let { data, children } = $props();
@@ -21,8 +22,10 @@
   );
   const leagueLabel = $derived(
     leagueOptions.find((option) => option.value === leagueValue)?.label ??
-      "Select",
+      $t("Select"),
   );
+  const localeValue = $derived($locale);
+  const localeLabel = $derived(localeValue.toUpperCase());
 
   const closeMenu = () => {
     menuOpen = false;
@@ -65,33 +68,37 @@
     goto(resolve("/chat/[slug]", { slug: next }));
     closeMenu();
   };
+
+  const handleLocaleChange = (next: string) => {
+    setLocale(next);
+  };
 </script>
 
 <main class="min-h-screen px-3 pt-3 pb-10 md:px-6">
   <div class="mx-auto flex w-full max-w-6xl flex-col gap-3">
     <header class="relative z-400 flex items-center justify-between gap-2">
       <div
-        class="text-muted-foreground text-[0.6rem] font-semibold tracking-[0.3em] uppercase"
+        class="text-muted-foreground text-xs font-semibold tracking-[0.3em] uppercase"
       >
-        Volley
+        {$t("Volley")}
       </div>
       <div class="relative" bind:this={menuRef}>
         <button
           type="button"
-          class="border-stroke text-ink rounded-full border bg-white/70 px-3 py-1 text-[0.6rem] font-semibold tracking-[0.2em] uppercase shadow-sm transition hover:bg-white"
+          class="border-stroke text-ink rounded-full border bg-white/70 px-3 py-1 text-xs font-semibold tracking-[0.2em] uppercase shadow-sm transition hover:bg-white"
           onclick={() => (menuOpen = !menuOpen)}
           aria-expanded={menuOpen}
         >
-          Menu
+          {$t("Menu")}
         </button>
         {#if menuOpen}
           <div
             class="border-stroke shadow-card absolute right-0 z-500 mt-2 w-64 rounded-2xl border bg-white/95 p-3 backdrop-blur"
           >
             <div
-              class="text-muted-foreground text-[0.6rem] font-semibold tracking-[0.3em] uppercase"
+              class="text-muted-foreground text-xs font-semibold tracking-[0.3em] uppercase"
             >
-              League
+              {$t("League")}
             </div>
             <div class="mt-2">
               <Select.Root
@@ -111,6 +118,33 @@
                 >
                   {#each leagueOptions as option (option.value)}
                     <Select.Item value={option.value} label={option.label} />
+                  {/each}
+                </Select.Content>
+              </Select.Root>
+            </div>
+            <div
+              class="text-muted-foreground mt-3 text-xs font-semibold tracking-[0.3em] uppercase"
+            >
+              {$t("Language")}
+            </div>
+            <div class="mt-2">
+              <Select.Root
+                value={localeValue}
+                onValueChange={handleLocaleChange}
+                type="single"
+              >
+                <Select.Trigger
+                  size="sm"
+                  class="border-stroke text-ink h-8 w-full rounded-full bg-white/80 px-3 text-xs font-semibold"
+                >
+                  <span class="truncate">{localeLabel}</span>
+                </Select.Trigger>
+                <Select.Content
+                  class="border-stroke bg-white"
+                  portalProps={{ to: "body" }}
+                >
+                  {#each localeOptions as option (option)}
+                    <Select.Item value={option} label={option.toUpperCase()} />
                   {/each}
                 </Select.Content>
               </Select.Root>

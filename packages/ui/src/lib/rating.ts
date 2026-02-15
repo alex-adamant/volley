@@ -155,9 +155,7 @@ function updateAfterMatch(
     kModifier = 2.0;
   }
 
-  r.rating = Math.round(
-    r.rating + L * kModifier * (score - expectedScore),
-  );
+  r.rating = Math.round(r.rating + L * kModifier * (score - expectedScore));
   r.ratingHistory.push(r.rating);
   r.games += 1;
 

@@ -7,12 +7,14 @@
   import { onMount } from "svelte";
   import { SvelteURLSearchParams } from "svelte/reactivity";
   import { twMerge } from "tailwind-merge";
+  import { t } from "$lib/i18n";
   import PrimaryNav from "$lib/components/primary-nav.svelte";
+  import ChevronDown from "@lucide/svelte/icons/chevron-down";
   import ChevronLeft from "@lucide/svelte/icons/chevron-left";
   import ChevronRight from "@lucide/svelte/icons/chevron-right";
   import * as Select from "$lib/components/ui/select";
 
-  let { data } = $props();
+  let { data, form } = $props();
 
   type StatusValue = "active" | "all";
 
@@ -35,23 +37,30 @@
   );
   const rangeLabel = $derived(
     rangeOptions.find((option) => option.value === rangeValue)?.label ??
-      "Range",
+      $t("Range"),
   );
-  const statusOptions = [
-    { value: "active", label: "Active" },
-    { value: "all", label: "All" },
-  ];
+  const statusOptions = $derived([
+    { value: "active", label: $t("Active") },
+    { value: "all", label: $t("All") },
+  ]);
   const statusLabel = $derived(
     statusOptions.find((option) => option.value === statusValue)?.label ??
-      "Status",
+      $t("Status"),
   );
 
   const dayOptions = $derived(
     data.days.map((day) => ({ value: day.key, label: day.label })),
   );
   const dayLabel = $derived(
-    dayOptions.find((option) => option.value === dayValue)?.label ?? "Select",
+    dayOptions.find((option) => option.value === dayValue)?.label ??
+      $t("Select"),
   );
+  const playerOptions = $derived(data.playerOptions ?? []);
+  const canManageMatches = $derived(data.isAdmin && playerOptions.length >= 4);
+  let createPlayerA1 = $state("");
+  let createPlayerA2 = $state("");
+  let createPlayerB1 = $state("");
+  let createPlayerB2 = $state("");
 
   let lastRangeKey = $state("all");
   let lastStatusValue = $state<StatusValue>("active");
@@ -81,7 +90,21 @@
     }
   });
 
+  $effect(() => {
+    if (playerOptions.length < 4) return;
+    if (createPlayerA1 && createPlayerA2 && createPlayerB1 && createPlayerB2) {
+      return;
+    }
+
+    createPlayerA1 = String(playerOptions[0].id);
+    createPlayerA2 = String(playerOptions[1].id);
+    createPlayerB1 = String(playerOptions[2].id);
+    createPlayerB2 = String(playerOptions[3].id);
+  });
+
   const toPathname = (value: string) => value as Pathname;
+  const formatDateInput = (value: Date) =>
+    new Date(value).toLocaleDateString("en-CA");
 
   const buildQuery = (rangeKey: string, statusKey: string, dayKey?: string) => {
     const params = new SvelteURLSearchParams();
@@ -177,27 +200,27 @@
     const playersPath = `/chat/${slug}`;
     return [
       {
-        label: "Players",
+        label: $t("Players"),
         href: toPathname(`${playersPath}${baseQuery}`),
         active: page.url.pathname === playersPath,
       },
       {
-        label: "Teams",
+        label: $t("Teams"),
         href: toPathname(`/chat/${slug}/team-stats${baseQuery}`),
         active: page.url.pathname === `/chat/${slug}/team-stats`,
       },
       {
-        label: "League Stats",
+        label: $t("League Stats"),
         href: toPathname(`/chat/${slug}/league-stats${baseQuery}`),
         active: page.url.pathname === `/chat/${slug}/league-stats`,
       },
       {
-        label: "Results",
+        label: $t("Results"),
         href: toPathname(`/chat/${slug}/day-results${resultsQuery}`),
         active: page.url.pathname === `/chat/${slug}/day-results`,
       },
       {
-        label: "Admin",
+        label: $t("Admin"),
         href: toPathname(`/chat/${slug}/admin${baseQuery}`),
         active: page.url.pathname === `/chat/${slug}/admin`,
       },
@@ -246,7 +269,7 @@
 </script>
 
 <section
-  class="border-stroke shadow-card sticky top-3 z-[200] rounded-2xl border bg-white/90 p-3 backdrop-blur"
+  class="border-stroke shadow-card sticky top-3 z-200 rounded-2xl border bg-white/90 p-3 backdrop-blur"
 >
   <div class="flex flex-wrap items-center gap-3">
     <PrimaryNav items={navItems} />
@@ -295,10 +318,10 @@
   class="border-stroke shadow-card mt-3 rounded-2xl border bg-white/90 p-3"
 >
   <div class="flex flex-wrap items-end justify-between gap-2">
-    <div class="text-ink text-sm font-semibold">Results</div>
+    <div class="text-ink text-sm font-semibold">{$t("Results")}</div>
     {#if data.activeRange?.note && rangeValue.startsWith("season")}
       <div
-        class="text-muted-foreground text-[0.6rem] font-semibold tracking-[0.2em] uppercase"
+        class="text-muted-foreground text-xs font-semibold tracking-[0.2em] uppercase"
       >
         {data.activeRange.note}
       </div>
@@ -313,7 +336,7 @@
       )}
       disabled={!data.prevDay}
       onclick={handlePrevDay}
-      aria-label="Previous day"
+      aria-label={$t("Previous day")}
     >
       <ChevronLeft class="h-4 w-4" />
     </button>
@@ -339,110 +362,559 @@
       )}
       disabled={!data.nextDay}
       onclick={handleNextDay}
-      aria-label="Next day"
+      aria-label={$t("Next day")}
     >
       <ChevronRight class="h-4 w-4" />
     </button>
 
     {#if data.isToday}
       <span
-        class="border-stroke text-ink rounded-full border bg-white/70 px-2 py-0.5 text-[0.55rem] font-semibold tracking-[0.2em] uppercase"
+        class="border-stroke text-ink rounded-full border bg-white/70 px-2 py-0.5 text-xs font-semibold tracking-[0.2em] uppercase"
       >
-        Today
+        {$t("Today")}
       </span>
     {/if}
   </div>
 </section>
 
+{#if data.isAdmin}
+  <section
+    class="border-stroke shadow-card mt-3 rounded-2xl border bg-white/90 p-3"
+  >
+    <div class="flex flex-wrap items-end justify-between gap-2">
+      <div class="text-ink text-sm font-semibold">{$t("Add match")}</div>
+      <div
+        class="text-muted-foreground text-xs font-semibold tracking-[0.2em] uppercase"
+      >
+        {$t("Manual entry")}
+      </div>
+    </div>
+    <p class="text-muted-foreground mt-1 text-xs">
+      {$t(
+        "You can add a match for any day. If the day does not exist yet, it will be created.",
+      )}
+    </p>
+
+    {#if !canManageMatches}
+      <div class="text-muted-foreground mt-3 text-xs">
+        {$t("Need at least 4 players to create a match.")}
+      </div>
+    {:else}
+      <form method="POST" action="?/createMatch" class="mt-3 grid gap-3">
+        <div class="grid gap-3 md:grid-cols-[1fr_1fr]">
+          <label class="text-xs">
+            <span
+              class="text-muted-foreground text-xs font-semibold tracking-[0.2em] uppercase"
+            >
+              {$t("Date")}
+            </span>
+            <input
+              type="date"
+              name="day"
+              class="border-stroke mt-2 h-8 w-full rounded-full border bg-white/70 px-3 text-xs"
+              value={dayValue ||
+                data.selectedDay?.key ||
+                new Date().toISOString().slice(0, 10)}
+              required
+            />
+          </label>
+          <label class="text-xs">
+            <span
+              class="text-muted-foreground text-xs font-semibold tracking-[0.2em] uppercase"
+            >
+              {$t("League")}
+            </span>
+            <input
+              type="number"
+              name="league"
+              class="border-stroke mt-2 h-8 w-full rounded-full border bg-white/70 px-3 text-xs"
+              value="1"
+              required
+            />
+          </label>
+        </div>
+
+        <div class="grid gap-3 md:grid-cols-2">
+          <div class="border-stroke rounded-xl border bg-white/70 p-3">
+            <div
+              class="text-muted-foreground text-xs font-semibold tracking-[0.2em] uppercase"
+            >
+              {$t("Team A")}
+            </div>
+            <div class="mt-3 grid gap-2">
+              <Select.Root
+                name="playerA1Id"
+                value={createPlayerA1}
+                onValueChange={(next) => (createPlayerA1 = next)}
+                type="single"
+              >
+                <Select.Trigger
+                  class="border-stroke text-ink h-8 w-full rounded-full bg-white/80 px-3 text-xs font-semibold"
+                >
+                  <span class="truncate">
+                    {playerOptions.find(
+                      (player) => String(player.id) === createPlayerA1,
+                    )?.name ?? $t("Select")}
+                  </span>
+                </Select.Trigger>
+                <Select.Content class="border-stroke bg-white">
+                  {#each playerOptions as player (player.id)}
+                    <Select.Item
+                      value={String(player.id)}
+                      label={player.name}
+                    />
+                  {/each}
+                </Select.Content>
+              </Select.Root>
+              <Select.Root
+                name="playerA2Id"
+                value={createPlayerA2}
+                onValueChange={(next) => (createPlayerA2 = next)}
+                type="single"
+              >
+                <Select.Trigger
+                  class="border-stroke text-ink h-8 w-full rounded-full bg-white/80 px-3 text-xs font-semibold"
+                >
+                  <span class="truncate">
+                    {playerOptions.find(
+                      (player) => String(player.id) === createPlayerA2,
+                    )?.name ?? $t("Select")}
+                  </span>
+                </Select.Trigger>
+                <Select.Content class="border-stroke bg-white">
+                  {#each playerOptions as player (player.id)}
+                    <Select.Item
+                      value={String(player.id)}
+                      label={player.name}
+                    />
+                  {/each}
+                </Select.Content>
+              </Select.Root>
+              <label class="text-xs">
+                <span
+                  class="text-muted-foreground text-xs font-semibold tracking-[0.2em] uppercase"
+                >
+                  {$t("Score")}
+                </span>
+                <input
+                  type="number"
+                  name="teamAScore"
+                  class="border-stroke mt-2 h-8 w-full rounded-full border bg-white/70 px-3 text-xs"
+                  value="21"
+                  min="0"
+                  required
+                />
+              </label>
+            </div>
+          </div>
+
+          <div class="border-stroke rounded-xl border bg-white/70 p-3">
+            <div
+              class="text-muted-foreground text-xs font-semibold tracking-[0.2em] uppercase"
+            >
+              {$t("Team B")}
+            </div>
+            <div class="mt-3 grid gap-2">
+              <Select.Root
+                name="playerB1Id"
+                value={createPlayerB1}
+                onValueChange={(next) => (createPlayerB1 = next)}
+                type="single"
+              >
+                <Select.Trigger
+                  class="border-stroke text-ink h-8 w-full rounded-full bg-white/80 px-3 text-xs font-semibold"
+                >
+                  <span class="truncate">
+                    {playerOptions.find(
+                      (player) => String(player.id) === createPlayerB1,
+                    )?.name ?? $t("Select")}
+                  </span>
+                </Select.Trigger>
+                <Select.Content class="border-stroke bg-white">
+                  {#each playerOptions as player (player.id)}
+                    <Select.Item
+                      value={String(player.id)}
+                      label={player.name}
+                    />
+                  {/each}
+                </Select.Content>
+              </Select.Root>
+              <Select.Root
+                name="playerB2Id"
+                value={createPlayerB2}
+                onValueChange={(next) => (createPlayerB2 = next)}
+                type="single"
+              >
+                <Select.Trigger
+                  class="border-stroke text-ink h-8 w-full rounded-full bg-white/80 px-3 text-xs font-semibold"
+                >
+                  <span class="truncate">
+                    {playerOptions.find(
+                      (player) => String(player.id) === createPlayerB2,
+                    )?.name ?? $t("Select")}
+                  </span>
+                </Select.Trigger>
+                <Select.Content class="border-stroke bg-white">
+                  {#each playerOptions as player (player.id)}
+                    <Select.Item
+                      value={String(player.id)}
+                      label={player.name}
+                    />
+                  {/each}
+                </Select.Content>
+              </Select.Root>
+              <label class="text-xs">
+                <span
+                  class="text-muted-foreground text-xs font-semibold tracking-[0.2em] uppercase"
+                >
+                  {$t("Score")}
+                </span>
+                <input
+                  type="number"
+                  name="teamBScore"
+                  class="border-stroke mt-2 h-8 w-full rounded-full border bg-white/70 px-3 text-xs"
+                  value="19"
+                  min="0"
+                  required
+                />
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <button
+            class="border-stroke h-8 rounded-full border bg-white/80 px-4 text-xs font-semibold"
+          >
+            {$t("Add match")}
+          </button>
+          {#if form?.message}
+            <span class="text-xs text-red-600">{$t(form.message)}</span>
+          {/if}
+        </div>
+      </form>
+    {/if}
+  </section>
+{/if}
+
 <section class="mt-3 grid gap-3 lg:grid-cols-[1.2fr_1fr]">
   <div class="border-stroke shadow-card rounded-2xl border bg-white/90 p-3">
-    <div class="text-ink text-sm font-semibold">Matches</div>
+    <div class="text-ink text-sm font-semibold">{$t("Results")}</div>
     <div class="mt-3 flex flex-col gap-2">
       {#if data.matches.length === 0}
-        <div class="text-muted-foreground text-xs">No matches yet.</div>
+        <div class="text-muted-foreground text-xs">{$t("No matches yet.")}</div>
       {:else}
         {#each data.matches as match (match.id)}
           {@const teamAWon = match.teamAScore > match.teamBScore}
           {@const teamBWon = match.teamBScore > match.teamAScore}
-          <div
-            class="border-stroke/60 rounded-xl border bg-white/80 p-2 sm:p-3"
-          >
-            <div class="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
-              <div
-                class={twMerge(
-                  "rounded-lg px-2 py-1 text-[0.65rem] leading-tight sm:px-3 sm:py-2 sm:text-xs",
-                  teamAWon
-                    ? "bg-ink/5 text-ink font-semibold"
-                    : "text-ink/60 font-medium",
-                )}
+          {#if data.isAdmin}
+            <details
+              class="border-stroke/60 rounded-xl border bg-white/80 p-2 sm:p-3"
+            >
+              <summary class="cursor-pointer list-none">
+                <span class="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
+                  <span
+                    class={twMerge(
+                      "rounded-lg px-2 py-1 text-xs leading-tight sm:px-3 sm:py-2 sm:text-xs",
+                      teamAWon
+                        ? "bg-ink/5 text-ink font-semibold"
+                        : "text-ink/60 font-medium",
+                    )}
+                  >
+                    <span class="block truncate">{match.playerA1Name}</span>
+                    <span class="block truncate">{match.playerA2Name}</span>
+                  </span>
+                  <span class="text-center">
+                    <span
+                      class="text-ink block text-sm font-semibold tabular-nums"
+                    >
+                      {match.teamAScore} — {match.teamBScore}
+                    </span>
+                    <span class="text-muted-foreground block text-xs">
+                      {$t("Tap to edit")}
+                    </span>
+                  </span>
+                  <span
+                    class={twMerge(
+                      "rounded-lg px-2 py-1 text-right text-xs leading-tight sm:px-3 sm:py-2 sm:text-xs",
+                      teamBWon
+                        ? "bg-ink/5 text-ink font-semibold"
+                        : "text-ink/60 font-medium",
+                    )}
+                  >
+                    <span class="block truncate">{match.playerB1Name}</span>
+                    <span class="block truncate">{match.playerB2Name}</span>
+                  </span>
+                </span>
+              </summary>
+
+              <form
+                method="POST"
+                action="?/updateMatch"
+                class="mt-3 grid gap-3"
               >
-                <div class="truncate">{match.playerA1Name}</div>
-                <div class="truncate">{match.playerA2Name}</div>
-              </div>
-              <div class="text-center">
-                <div class="text-ink text-sm font-semibold tabular-nums">
-                  {match.teamAScore} — {match.teamBScore}
+                <input type="hidden" name="matchId" value={match.id} />
+
+                <div class="grid gap-3 md:grid-cols-[1fr_1fr]">
+                  <label class="text-xs">
+                    <span
+                      class="text-muted-foreground text-xs font-semibold tracking-[0.2em] uppercase"
+                    >
+                      {$t("Date")}
+                    </span>
+                    <input
+                      type="date"
+                      name="day"
+                      class="border-stroke mt-2 h-8 w-full rounded-full border bg-white/70 px-3 text-xs"
+                      value={formatDateInput(match.day)}
+                      required
+                    />
+                  </label>
+                  <label class="text-xs">
+                    <span
+                      class="text-muted-foreground text-xs font-semibold tracking-[0.2em] uppercase"
+                    >
+                      {$t("League")}
+                    </span>
+                    <input
+                      type="number"
+                      name="league"
+                      class="border-stroke mt-2 h-8 w-full rounded-full border bg-white/70 px-3 text-xs"
+                      value={match.league}
+                      required
+                    />
+                  </label>
+                </div>
+
+                <div class="grid gap-3 md:grid-cols-2">
+                  <div class="border-stroke rounded-xl border bg-white/70 p-3">
+                    <div
+                      class="text-muted-foreground text-xs font-semibold tracking-[0.2em] uppercase"
+                    >
+                      {$t("Team A")}
+                    </div>
+                    <div class="mt-3 grid gap-2">
+                      <div class="relative">
+                        <select
+                          name="playerA1Id"
+                          class="border-stroke h-8 w-full appearance-none rounded-full border bg-white/80 pr-10 pl-3 text-xs font-semibold"
+                        >
+                          {#each playerOptions as player (player.id)}
+                            <option
+                              value={player.id}
+                              selected={player.id === match.playerA1Id}
+                            >
+                              {player.name}
+                            </option>
+                          {/each}
+                        </select>
+                        <ChevronDown
+                          class="text-muted-foreground pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2 opacity-70"
+                        />
+                      </div>
+                      <div class="relative">
+                        <select
+                          name="playerA2Id"
+                          class="border-stroke h-8 w-full appearance-none rounded-full border bg-white/80 pr-10 pl-3 text-xs font-semibold"
+                        >
+                          {#each playerOptions as player (player.id)}
+                            <option
+                              value={player.id}
+                              selected={player.id === match.playerA2Id}
+                            >
+                              {player.name}
+                            </option>
+                          {/each}
+                        </select>
+                        <ChevronDown
+                          class="text-muted-foreground pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2 opacity-70"
+                        />
+                      </div>
+                      <label class="text-xs">
+                        <span
+                          class="text-muted-foreground text-xs font-semibold tracking-[0.2em] uppercase"
+                        >
+                          {$t("Score")}
+                        </span>
+                        <input
+                          type="number"
+                          name="teamAScore"
+                          class="border-stroke mt-2 h-8 w-full rounded-full border bg-white/70 px-3 text-xs"
+                          value={match.teamAScore}
+                          min="0"
+                          required
+                        />
+                      </label>
+                    </div>
+                  </div>
+
+                  <div class="border-stroke rounded-xl border bg-white/70 p-3">
+                    <div
+                      class="text-muted-foreground text-xs font-semibold tracking-[0.2em] uppercase"
+                    >
+                      {$t("Team B")}
+                    </div>
+                    <div class="mt-3 grid gap-2">
+                      <div class="relative">
+                        <select
+                          name="playerB1Id"
+                          class="border-stroke h-8 w-full appearance-none rounded-full border bg-white/80 pr-10 pl-3 text-xs font-semibold"
+                        >
+                          {#each playerOptions as player (player.id)}
+                            <option
+                              value={player.id}
+                              selected={player.id === match.playerB1Id}
+                            >
+                              {player.name}
+                            </option>
+                          {/each}
+                        </select>
+                        <ChevronDown
+                          class="text-muted-foreground pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2 opacity-70"
+                        />
+                      </div>
+                      <div class="relative">
+                        <select
+                          name="playerB2Id"
+                          class="border-stroke h-8 w-full appearance-none rounded-full border bg-white/80 pr-10 pl-3 text-xs font-semibold"
+                        >
+                          {#each playerOptions as player (player.id)}
+                            <option
+                              value={player.id}
+                              selected={player.id === match.playerB2Id}
+                            >
+                              {player.name}
+                            </option>
+                          {/each}
+                        </select>
+                        <ChevronDown
+                          class="text-muted-foreground pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2 opacity-70"
+                        />
+                      </div>
+                      <label class="text-xs">
+                        <span
+                          class="text-muted-foreground text-xs font-semibold tracking-[0.2em] uppercase"
+                        >
+                          {$t("Score")}
+                        </span>
+                        <input
+                          type="number"
+                          name="teamBScore"
+                          class="border-stroke mt-2 h-8 w-full rounded-full border bg-white/70 px-3 text-xs"
+                          value={match.teamBScore}
+                          min="0"
+                          required
+                        />
+                      </label>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="flex flex-wrap items-center gap-2">
+                  <button
+                    class="border-stroke h-8 rounded-full border bg-white/80 px-4 text-xs font-semibold"
+                  >
+                    {$t("Save match")}
+                  </button>
+                </div>
+              </form>
+
+              <form method="POST" action="?/deleteMatch" class="mt-2">
+                <input type="hidden" name="matchId" value={match.id} />
+                <button
+                  class="border-stroke h-8 rounded-full border bg-white/80 px-4 text-xs font-semibold text-red-600"
+                  onclick={(event) => {
+                    if (!confirm($t("Delete this match?"))) {
+                      event.preventDefault();
+                    }
+                  }}
+                >
+                  {$t("Delete match")}
+                </button>
+              </form>
+            </details>
+          {:else}
+            <div
+              class="border-stroke/60 rounded-xl border bg-white/80 p-2 sm:p-3"
+            >
+              <div class="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
+                <div
+                  class={twMerge(
+                    "rounded-lg px-2 py-1 text-xs leading-tight sm:px-3 sm:py-2 sm:text-xs",
+                    teamAWon
+                      ? "bg-ink/5 text-ink font-semibold"
+                      : "text-ink/60 font-medium",
+                  )}
+                >
+                  <div class="truncate">{match.playerA1Name}</div>
+                  <div class="truncate">{match.playerA2Name}</div>
+                </div>
+                <div class="text-center">
+                  <div class="text-ink text-sm font-semibold tabular-nums">
+                    {match.teamAScore} — {match.teamBScore}
+                  </div>
+                </div>
+                <div
+                  class={twMerge(
+                    "rounded-lg px-2 py-1 text-right text-xs leading-tight sm:px-3 sm:py-2 sm:text-xs",
+                    teamBWon
+                      ? "bg-ink/5 text-ink font-semibold"
+                      : "text-ink/60 font-medium",
+                  )}
+                >
+                  <div class="truncate">{match.playerB1Name}</div>
+                  <div class="truncate">{match.playerB2Name}</div>
                 </div>
               </div>
-              <div
-                class={twMerge(
-                  "rounded-lg px-2 py-1 text-right text-[0.65rem] leading-tight sm:px-3 sm:py-2 sm:text-xs",
-                  teamBWon
-                    ? "bg-ink/5 text-ink font-semibold"
-                    : "text-ink/60 font-medium",
-                )}
-              >
-                <div class="truncate">{match.playerB1Name}</div>
-                <div class="truncate">{match.playerB2Name}</div>
-              </div>
             </div>
-          </div>
+          {/if}
         {/each}
       {/if}
     </div>
   </div>
 
   <div class="border-stroke shadow-card rounded-2xl border bg-white/90 p-3">
-    <div class="text-ink text-sm font-semibold">Standings</div>
+    <div class="text-ink text-sm font-semibold">{$t("Standings")}</div>
     <div class="mt-3 overflow-x-auto">
-      <table class="w-full min-w-[360px] text-xs">
+      <table class="w-full min-w-90 text-xs">
         <thead class="bg-white/70 text-left">
           <tr
-            class="text-muted-foreground text-[0.6rem] font-semibold tracking-[0.2em] uppercase"
+            class="text-muted-foreground text-xs font-semibold tracking-[0.2em] uppercase"
           >
-            <th class="px-2 py-2">#</th>
-            <th class="px-2 py-2">Player</th>
-            <th class="px-2 py-2 text-right">W-L</th>
-            <th class="px-2 py-2 text-right">Pts</th>
-            <th class="px-2 py-2 text-right">Diff</th>
+            <th class="p-2">#</th>
+            <th class="p-2">{$t("Player")}</th>
+            <th class="p-2 text-right">{$t("W-L")}</th>
+            <th class="p-2 text-right">{$t("Points")}</th>
+            <th class="p-2 text-right">{$t("Diff")}</th>
           </tr>
         </thead>
         <tbody>
           {#if data.standings.length === 0}
             <tr>
               <td class="text-muted-foreground px-2 py-4" colspan="5">
-                No standings yet.
+                {$t("No standings yet.")}
               </td>
             </tr>
           {:else}
             {#each data.standings as row, index (row.id)}
               <tr class="border-stroke/50 border-b last:border-b-0">
-                <td class="px-2 py-2 font-semibold tabular-nums">
+                <td class="p-2 font-semibold tabular-nums">
                   {index + 1}
                 </td>
-                <td class="px-2 py-2">
+                <td class="p-2">
                   <div class="font-semibold">{row.name}</div>
-                  <div class="text-muted-foreground text-[0.65rem]">
-                    {row.games} games
+                  <div class="text-muted-foreground text-xs">
+                    {row.games}
+                    {$t("games")}
                   </div>
                 </td>
-                <td class="px-2 py-2 text-right tabular-nums">
+                <td class="p-2 text-right tabular-nums">
                   {row.wins}-{row.losses}
                 </td>
-                <td class="px-2 py-2 text-right tabular-nums">
+                <td class="p-2 text-right tabular-nums">
                   {row.pointsFor} / {row.pointsAgainst}
                 </td>
-                <td class="px-2 py-2 text-right font-semibold tabular-nums">
+                <td class="p-2 text-right font-semibold tabular-nums">
                   {row.pointDiff > 0 ? "+" : ""}{row.pointDiff}
                 </td>
               </tr>

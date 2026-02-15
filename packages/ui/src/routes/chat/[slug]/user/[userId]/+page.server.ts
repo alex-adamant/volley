@@ -1,8 +1,8 @@
-import { error } from "@sveltejs/kit";
+import { error, fail } from "@sveltejs/kit";
 import { calculateWinrate } from "$lib";
 import { calculateResults } from "$lib/rating";
 import { buildPlayerForm, getCurrentStreak } from "$lib/stats";
-import { adminEnabled, isAdmin } from "$lib/server/admin";
+import { adminEnabled, assertAdmin, isAdmin } from "$lib/server/admin";
 import { prisma } from "$lib/server/prisma";
 import { getRangeOptions } from "$lib/server/ranges";
 
@@ -164,9 +164,19 @@ export async function load({ params, url, cookies }) {
     .sort((a, b) => b.winrate - a.winrate || b.games - a.games)
     .slice(0, 3);
 
+  const worstPartners = partners
+    .filter((entry) => entry.games >= 3)
+    .sort((a, b) => a.winrate - b.winrate || b.games - a.games)
+    .slice(0, 3);
+
   const toughOpponents = opponents
     .filter((entry) => entry.games >= 3)
     .sort((a, b) => a.winrate - b.winrate || b.games - a.games)
+    .slice(0, 3);
+
+  const easyOpponents = opponents
+    .filter((entry) => entry.games >= 3)
+    .sort((a, b) => b.winrate - a.winrate || b.games - a.games)
     .slice(0, 3);
 
   const activePlayers = chatUsers.filter(
@@ -176,6 +186,13 @@ export async function load({ params, url, cookies }) {
   return {
     chat,
     user: user.User,
+    adminProfile: {
+      userId: user.userId,
+      name: user.User.name,
+      isActive: user.isActive,
+      isHidden: user.isHidden,
+      isAdmin: user.isAdmin,
+    },
     result: {
       ...result,
       winrate: calculateWinrate(result),
@@ -186,7 +203,9 @@ export async function load({ params, url, cookies }) {
     },
     matchSummaries: matchSummaries.slice(-8).reverse(),
     bestPartners,
+    worstPartners,
     toughOpponents,
+    easyOpponents,
     stats: {
       playersTotal: chatUsers.length,
       playersActive: activePlayers,
@@ -207,3 +226,60 @@ export async function load({ params, url, cookies }) {
     adminEnabled: await adminEnabled(),
   };
 }
+
+export const actions = {
+  updatePlayer: async ({ params, request, cookies }) => {
+    await assertAdmin(cookies);
+
+    const data = await request.formData();
+    const userId = Number(data.get("userId"));
+    const name = String(data.get("name") ?? "").trim();
+    const isActive = data.has("isActive");
+    const isHidden = data.has("isHidden");
+    const isAdminFlag = data.has("isAdmin");
+
+    const paramsUserId = Number(params.userId);
+    if (!userId || !name || userId !== paramsUserId) {
+      return fail(400, { message: "Invalid player data." });
+    }
+
+    const chat = await prisma.chat.findUnique({ where: { slug: params.slug } });
+    if (!chat) {
+      throw error(404, "Chat not found");
+    }
+
+    const chatUser = await prisma.chatUser.findUnique({
+      where: {
+        chatId_userId: {
+          chatId: chat.id,
+          userId,
+        },
+      },
+    });
+    if (!chatUser) {
+      return fail(404, { message: "Player not found in this chat." });
+    }
+
+    await prisma.$transaction([
+      prisma.user.update({
+        where: { id: userId },
+        data: { name },
+      }),
+      prisma.chatUser.update({
+        where: {
+          chatId_userId: {
+            chatId: chat.id,
+            userId,
+          },
+        },
+        data: {
+          isActive,
+          isHidden,
+          isAdmin: isAdminFlag,
+        },
+      }),
+    ]);
+
+    return { success: true };
+  },
+};

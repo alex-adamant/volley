@@ -7,6 +7,7 @@
   import { onMount } from "svelte";
   import { SvelteURLSearchParams } from "svelte/reactivity";
   import { twMerge } from "tailwind-merge";
+  import { t } from "$lib/i18n";
   import PrimaryNav from "$lib/components/primary-nav.svelte";
   import * as Select from "$lib/components/ui/select";
 
@@ -32,15 +33,15 @@
   );
   const rangeLabel = $derived(
     rangeOptions.find((option) => option.value === rangeValue)?.label ??
-      "Range",
+      $t("Range"),
   );
-  const statusOptions = [
-    { value: "active", label: "Active" },
-    { value: "all", label: "All" },
-  ];
+  const statusOptions = $derived([
+    { value: "active", label: $t("Active") },
+    { value: "all", label: $t("All") },
+  ]);
   const statusLabel = $derived(
     statusOptions.find((option) => option.value === statusValue)?.label ??
-      "Status",
+      $t("Status"),
   );
 
   let lastRangeKey = $state("all");
@@ -173,27 +174,27 @@
     const playersPath = `/chat/${slug}`;
     return [
       {
-        label: "Players",
+        label: $t("Players"),
         href: toPathname(`${playersPath}${query}`),
         active: page.url.pathname === playersPath,
       },
       {
-        label: "Teams",
+        label: $t("Teams"),
         href: toPathname(`/chat/${slug}/team-stats${query}`),
         active: page.url.pathname === `/chat/${slug}/team-stats`,
       },
       {
-        label: "League Stats",
+        label: $t("League Stats"),
         href: toPathname(`/chat/${slug}/league-stats${query}`),
         active: page.url.pathname === `/chat/${slug}/league-stats`,
       },
       {
-        label: "Results",
+        label: $t("Results"),
         href: toPathname(`/chat/${slug}/day-results${query}`),
         active: page.url.pathname === `/chat/${slug}/day-results`,
       },
       {
-        label: "Admin",
+        label: $t("Admin"),
         href: toPathname(`/chat/${slug}/admin${query}`),
         active: page.url.pathname === `/chat/${slug}/admin`,
       },
@@ -286,10 +287,10 @@
   class="border-stroke shadow-card mt-3 rounded-2xl border bg-white/90 p-3"
 >
   <div class="flex flex-wrap items-end justify-between gap-2">
-    <div class="text-ink text-sm font-semibold">Players</div>
+    <div class="text-ink text-sm font-semibold">{$t("Players")}</div>
     {#if data.activeRange?.note && rangeValue.startsWith("season")}
       <div
-        class="text-muted-foreground text-[0.6rem] font-semibold tracking-[0.2em] uppercase"
+        class="text-muted-foreground text-xs font-semibold tracking-[0.2em] uppercase"
       >
         {data.activeRange.note}
       </div>
@@ -300,23 +301,23 @@
     <table class="w-full min-w-[720px] text-xs">
       <thead class="bg-white/70 text-left">
         <tr
-          class="text-muted-foreground text-[0.6rem] font-semibold tracking-[0.2em] uppercase"
+          class="text-muted-foreground text-xs font-semibold tracking-[0.2em] uppercase"
         >
-          <th class="px-2 py-2">#</th>
-          <th class="px-2 py-2">Player</th>
-          <th class="px-2 py-2 text-right">Rating</th>
-          <th class="px-2 py-2 text-right">Win%</th>
-          <th class="px-2 py-2 text-right">Games</th>
-          <th class="px-2 py-2 text-right">Points</th>
-          <th class="px-2 py-2 text-right">Diff/G</th>
-          <th class="px-2 py-2 text-right">Form</th>
+          <th class="p-2">#</th>
+          <th class="p-2">{$t("Player")}</th>
+          <th class="p-2 text-right">{$t("Rating")}</th>
+          <th class="p-2 text-right">{$t("Win%")}</th>
+          <th class="p-2 text-right">{$t("Games")}</th>
+          <th class="p-2 text-right">{$t("Points")}</th>
+          <th class="p-2 text-right">{$t("Diff/G")}</th>
+          <th class="p-2 text-right">{$t("Form")}</th>
         </tr>
       </thead>
       <tbody>
         {#if data.results.length === 0}
           <tr>
             <td class="text-muted-foreground px-2 py-4" colspan="8">
-              No players found.
+              {$t("No players found.")}
             </td>
           </tr>
         {:else}
@@ -327,10 +328,10 @@
                 !player.isActive && "opacity-60",
               )}
             >
-              <td class="px-2 py-2 font-semibold tabular-nums">
+              <td class="p-2 font-semibold tabular-nums">
                 {index + 1}
               </td>
-              <td class="px-2 py-2">
+              <td class="p-2">
                 <a
                   class="font-semibold"
                   href={resolve(
@@ -345,7 +346,7 @@
                   {player.name}
                 </a>
               </td>
-              <td class="px-2 py-2 pr-8 text-right">
+              <td class="p-2 pr-8 text-right">
                 <span
                   class="relative inline-flex items-start font-semibold tabular-nums"
                 >
@@ -353,7 +354,7 @@
                   {#if player.playedLastDay}
                     <span
                       class={twMerge(
-                        "absolute top-0.5 left-full ml-1 text-[0.5rem] leading-none font-semibold tabular-nums",
+                        "absolute top-0.5 left-full ml-1 text-xs leading-none font-semibold tabular-nums",
                         player.ratingChange > 0 && "text-green-600",
                         player.ratingChange < 0 && "text-red-500",
                       )}
@@ -363,19 +364,19 @@
                   {/if}
                 </span>
               </td>
-              <td class="px-2 py-2 text-right tabular-nums">
+              <td class="p-2 text-right tabular-nums">
                 {player.winrate}%
               </td>
-              <td class="px-2 py-2 text-right tabular-nums">
+              <td class="p-2 text-right tabular-nums">
                 {player.games}
               </td>
-              <td class="px-2 py-2 text-right tabular-nums">
+              <td class="p-2 text-right tabular-nums">
                 {player.pointsFor} / {player.pointsAgainst}
               </td>
-              <td class="px-2 py-2 text-right font-semibold tabular-nums">
+              <td class="p-2 text-right font-semibold tabular-nums">
                 {formatDiffPerGame(player.pointDiff, player.games)}
               </td>
-              <td class="overflow-visible px-2 py-2 text-right">
+              <td class="overflow-visible p-2 text-right">
                 <div class="flex justify-end gap-1">
                   {#each player.recentForm as mark, markIndex (markIndex)}
                     {@const matchDetail = player.recentMatches?.[markIndex]}
@@ -385,7 +386,7 @@
                         "block h-2 w-2 rounded-full p-0",
                         mark === "W" ? "bg-green-500" : "bg-red-500",
                       )}
-                      aria-label="Match details"
+                      aria-label={$t("Match details")}
                       onmouseenter={(event) =>
                         matchDetail && showMatchTooltip(event, matchDetail)}
                       onmouseleave={hideMatchTooltip}
@@ -406,19 +407,21 @@
 
 {#if matchTooltip}
   <div
-    class="border-stroke text-ink pointer-events-none fixed z-[2147483647] w-48 rounded-xl border bg-white p-1.5 text-[0.6rem] leading-tight shadow-xl"
+    class="border-stroke text-ink pointer-events-none fixed z-[2147483647] w-48 rounded-xl border bg-white p-1.5 text-xs leading-tight shadow-xl"
     style={`left: ${matchTooltip.x}px; top: ${matchTooltip.y}px;`}
     role="tooltip"
   >
-    <div class="text-[0.5rem] font-semibold tracking-[0.2em] uppercase">
-      {matchTooltip.detail.result === "W" ? "Win" : "Loss"} ·
+    <div class="text-xs font-semibold tracking-[0.2em] uppercase">
+      {matchTooltip.detail.result === "W" ? $t("Win") : $t("Loss")} ·
       {matchTooltip.detail.score}
     </div>
     <div class="mt-0.5 font-semibold">
-      With {matchTooltip.detail.teammates.join(" + ")}
+      {$t("With")}
+      {matchTooltip.detail.teammates.join(" + ")}
     </div>
     <div class="text-ink/70">
-      vs {matchTooltip.detail.opponents.join(" + ")}
+      {$t("vs")}
+      {matchTooltip.detail.opponents.join(" + ")}
     </div>
   </div>
 {/if}

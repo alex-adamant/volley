@@ -27,8 +27,7 @@ export interface TeamStats {
 const getAdjustedWinrate = (stats: TeamStats) => {
   if (!stats.games) return 0;
   return (
-    (stats.wins + WINRATE_PRIOR_WINS) /
-    (stats.games + WINRATE_PRIOR_GAMES)
+    (stats.wins + WINRATE_PRIOR_WINS) / (stats.games + WINRATE_PRIOR_GAMES)
   );
 };
 
@@ -107,8 +106,7 @@ export function getTeamStats(players: User[], matches: Match[]) {
   return [...teamStats.values()]
     .filter((t) => t.games > 0)
     .sort((a, b) => {
-      const adjustedWinrateDiff =
-        getAdjustedWinrate(b) - getAdjustedWinrate(a);
+      const adjustedWinrateDiff = getAdjustedWinrate(b) - getAdjustedWinrate(a);
       if (adjustedWinrateDiff !== 0) return adjustedWinrateDiff;
       const winsDiff = b.wins - a.wins;
       if (winsDiff !== 0) return winsDiff;
