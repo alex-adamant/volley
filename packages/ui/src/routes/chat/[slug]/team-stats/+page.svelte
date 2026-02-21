@@ -77,6 +77,9 @@
     const params = new SvelteURLSearchParams();
     if (rangeKey) params.set("range", rangeKey);
     if (statusKey) params.set("status", statusKey);
+    if (data.isAdmin && page.url.searchParams.get("seasonBoost") === "base") {
+      params.set("seasonBoost", "base");
+    }
     const queryString = params.toString();
     return queryString ? `?${queryString}` : "";
   };
@@ -159,6 +162,7 @@
     const params = new SvelteURLSearchParams();
     const currentRange = page.url.searchParams.get("range");
     const currentStatus = page.url.searchParams.get("status");
+    const currentSeasonBoost = page.url.searchParams.get("seasonBoost");
     const storedRange = localStorage.getItem(rangeStorageKey);
     const storedStatus = localStorage.getItem(statusStorageKey);
     let changed = false;
@@ -180,6 +184,10 @@
       changed = true;
     }
 
+    if (data.isAdmin && currentSeasonBoost === "base") {
+      params.set("seasonBoost", "base");
+    }
+
     if (changed) {
       goto(resolve(toPathname(`${page.url.pathname}?${params.toString()}`)), {
         replaceState: true,
@@ -191,7 +199,7 @@
 </script>
 
 <section
-  class="border-stroke shadow-card sticky top-3 z-[200] rounded-2xl border bg-white/90 p-3 backdrop-blur"
+  class="border-stroke shadow-card sticky top-3 z-200 rounded-2xl border bg-white/90 p-3 backdrop-blur"
 >
   <div class="flex flex-wrap items-center gap-3">
     <PrimaryNav items={navItems} />
@@ -251,7 +259,7 @@
   </div>
 
   <div class="mt-3 overflow-x-auto">
-    <table class="w-full min-w-[640px] text-xs">
+    <table class="w-full min-w-160 text-xs">
       <thead class="bg-white/70 text-left">
         <tr
           class="text-muted-foreground text-xs font-semibold tracking-[0.2em] uppercase"

@@ -1,55 +1,31 @@
-import { error } from "@sveltejs/kit";
-import { calculateWinrate } from "$lib";
-import { calculateResults } from "$lib/rating";
 import {
   buildPlayerForm,
   buildPlayerMatchDetails,
   buildPlayerResultDetails,
   getCurrentStreak,
 } from "$lib/stats";
-import { adminEnabled, isAdmin } from "$lib/server/admin";
-import { prisma } from "$lib/server/prisma";
-import { getRangeOptions } from "$lib/server/ranges";
+import { loadChatRatingData } from "$lib/server/rating-data";
 
 export async function load({ params, url, cookies }) {
   const slug = params.slug;
   const rangeKey = url.searchParams.get("range") ?? "all";
-
-  const adminUser = await isAdmin(cookies);
-  const status = url.searchParams.get("status") ?? "active";
-
-  const chat = await prisma.chat.findUnique({ where: { slug } });
-  if (!chat) {
-    throw error(404, "Chat not found");
-  }
-
-  const seasons = await prisma.season.findMany({
-    where: { chatId: chat.id },
-    orderBy: { startDate: "desc" },
-  });
-
-  const rangeOptions = getRangeOptions(seasons);
-  const resolvedKey =
-    rangeKey === "season"
-      ? rangeOptions.find((range) => range.key.startsWith("season"))?.key
-      : rangeKey;
-  const activeRange =
-    rangeOptions.find((range) => range.key === resolvedKey) ?? rangeOptions[0];
-
-  const users = await prisma.chatUser.findMany({
-    where: { Chat: { is: { slug } } },
-    include: { User: true },
-    orderBy: { userId: "asc" },
-  });
-
-  const matches = await prisma.match.findMany({
-    where: {
-      Chat: { is: { slug } },
-      ...(activeRange.start && activeRange.end
-        ? { day: { gte: activeRange.start, lte: activeRange.end } }
-        : {}),
-    },
-    orderBy: { id: "asc" },
+  const {
+    chat,
+    users,
+    matches,
+    results: baseResults,
+    status,
+    rangeOptions,
+    activeRange,
+    seasonBoostMode,
+    isAdmin,
+    adminEnabled,
+  } = await loadChatRatingData({
+    slug,
+    rangeKey,
+    statusParam: url.searchParams.get("status"),
+    seasonBoostParam: url.searchParams.get("seasonBoost"),
+    cookies,
   });
 
   const fullForms = buildPlayerForm(matches);
@@ -72,40 +48,30 @@ export async function load({ params, url, cookies }) {
     users.map((item) => [item.userId, item.User.name]),
   );
 
-  const results = calculateResults(
-    users,
-    matches,
-    activeRange.start
-      ? { startDate: activeRange.start, endDate: activeRange.end }
-      : undefined,
-  )
-    .filter((p) => !p.isHidden)
-    .filter((p) => (status === "active" ? p.isActive : true))
-    .map((player) => {
-      const history = fullForms.get(player.id) ?? [];
-      const recentResults = resultDetails.get(player.id) ?? [];
-      const matchHistory = matchDetails.get(player.id) ?? [];
-      const recentMatches = matchHistory.map((detail) => ({
-        result: detail.result,
-        score: detail.score,
-        teammates: detail.teammateIds.map(
-          (id) => userNameMap.get(id) ?? `Player ${id}`,
-        ),
-        opponents: detail.opponentIds.map(
-          (id) => userNameMap.get(id) ?? `Player ${id}`,
-        ),
-      }));
-      const recentForm = recentMatches.map((detail) => detail.result);
-      return {
-        ...player,
-        winrate: calculateWinrate(player),
-        recentForm,
-        currentStreak: getCurrentStreak(history),
-        recentResults,
-        recentMatches,
-        playedLastDay: lastDayPlayers.has(player.id),
-      };
-    });
+  const results = baseResults.map((player) => {
+    const history = fullForms.get(player.id) ?? [];
+    const recentResults = resultDetails.get(player.id) ?? [];
+    const matchHistory = matchDetails.get(player.id) ?? [];
+    const recentMatches = matchHistory.map((detail) => ({
+      result: detail.result,
+      score: detail.score,
+      teammates: detail.teammateIds.map(
+        (id) => userNameMap.get(id) ?? `Player ${id}`,
+      ),
+      opponents: detail.opponentIds.map(
+        (id) => userNameMap.get(id) ?? `Player ${id}`,
+      ),
+    }));
+    const recentForm = recentMatches.map((detail) => detail.result);
+    return {
+      ...player,
+      recentForm,
+      currentStreak: getCurrentStreak(history),
+      recentResults,
+      recentMatches,
+      playedLastDay: lastDayPlayers.has(player.id),
+    };
+  });
 
   const activePlayers = users.filter((p) => p.isActive && !p.isHidden).length;
   const ratings = results.map((player) => player.rating);
@@ -191,17 +157,10 @@ export async function load({ params, url, cookies }) {
       biggestMargin,
       closestMatch,
     },
-    rangeOptions: rangeOptions.map(({ key, label, note }) => ({
-      key,
-      label,
-      note,
-    })),
-    activeRange: {
-      key: activeRange.key,
-      label: activeRange.label,
-      note: activeRange.note,
-    },
-    isAdmin: adminUser,
-    adminEnabled: await adminEnabled(),
+    rangeOptions,
+    activeRange,
+    seasonBoostMode,
+    isAdmin,
+    adminEnabled,
   };
 }

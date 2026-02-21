@@ -9,12 +9,16 @@ import { getRangeOptions } from "$lib/server/ranges";
 export async function load({ params, url, cookies }) {
   const { userId, slug } = params;
   const userIdNumber = Number(userId);
+  const adminUser = await isAdmin(cookies);
   const chat = await prisma.chat.findUnique({ where: { slug } });
   if (!chat) {
     throw error(404, "Chat not found");
   }
 
   const rangeKey = url.searchParams.get("range") ?? "all";
+  const seasonBoostParam = url.searchParams.get("seasonBoost");
+  const seasonBoostMode =
+    adminUser && seasonBoostParam === "base" ? "base" : "boosted";
   const seasons = await prisma.season.findMany({
     where: { chatId: chat.id },
     orderBy: { startDate: "desc" },
@@ -26,6 +30,8 @@ export async function load({ params, url, cookies }) {
       : rangeKey;
   const activeRange =
     rangeOptions.find((range) => range.key === resolvedKey) ?? rangeOptions[0];
+  const disableSeasonBoost =
+    seasonBoostMode === "base" && activeRange.key.startsWith("season");
 
   const chatUsers = await prisma.chatUser.findMany({
     where: { Chat: { is: { slug } } },
@@ -52,7 +58,11 @@ export async function load({ params, url, cookies }) {
     chatUsers,
     matches,
     activeRange.start
-      ? { startDate: activeRange.start, endDate: activeRange.end }
+      ? {
+          startDate: activeRange.start,
+          endDate: activeRange.end,
+          disableSeasonBoost,
+        }
       : undefined,
   ).filter((player) => !player.isHidden);
 
@@ -222,7 +232,8 @@ export async function load({ params, url, cookies }) {
       label: activeRange.label,
       note: activeRange.note,
     },
-    isAdmin: await isAdmin(cookies),
+    seasonBoostMode,
+    isAdmin: adminUser,
     adminEnabled: await adminEnabled(),
   };
 }

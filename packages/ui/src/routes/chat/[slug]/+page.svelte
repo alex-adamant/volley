@@ -14,12 +14,16 @@
   let { data } = $props();
 
   type StatusValue = "active" | "all";
+  type SeasonBoostValue = "boosted" | "base";
 
   const normalizeStatus = (value: string): StatusValue =>
     value === "all" ? "all" : "active";
+  const normalizeSeasonBoost = (value: string): SeasonBoostValue =>
+    value === "base" ? "base" : "boosted";
 
   let rangeValue = $state("all");
   let statusValue = $state<StatusValue>("active");
+  let seasonBoostValue = $state<SeasonBoostValue>("boosted");
 
   const slug = $derived(page.params.slug ?? "");
   const rangeStorageKey = $derived(`volley-range:${slug}`);
@@ -43,9 +47,18 @@
     statusOptions.find((option) => option.value === statusValue)?.label ??
       $t("Status"),
   );
+  const seasonBoostOptions = $derived([
+    { value: "boosted", label: $t("Boosted (x2)") },
+    { value: "base", label: $t("No boost (x1)") },
+  ]);
+  const seasonBoostLabel = $derived(
+    seasonBoostOptions.find((option) => option.value === seasonBoostValue)
+      ?.label ?? $t("Season mode"),
+  );
 
   let lastRangeKey = $state("all");
   let lastStatusValue = $state<StatusValue>("active");
+  let lastSeasonBoostValue = $state<SeasonBoostValue>("boosted");
 
   $effect(() => {
     const next = data.activeRange?.key ?? "all";
@@ -63,12 +76,27 @@
     }
   });
 
+  $effect(() => {
+    const next = normalizeSeasonBoost(data.seasonBoostMode ?? "boosted");
+    if (next !== lastSeasonBoostValue) {
+      lastSeasonBoostValue = next;
+      seasonBoostValue = next;
+    }
+  });
+
   const toPathname = (value: string) => value as Pathname;
 
-  const buildQuery = (rangeKey: string, statusKey: string) => {
+  const buildQuery = (
+    rangeKey: string,
+    statusKey: string,
+    seasonBoostKey: SeasonBoostValue = seasonBoostValue,
+  ) => {
     const params = new SvelteURLSearchParams();
     if (rangeKey) params.set("range", rangeKey);
     if (statusKey) params.set("status", statusKey);
+    if (data.isAdmin && seasonBoostKey === "base") {
+      params.set("seasonBoost", "base");
+    }
     const queryString = params.toString();
     return queryString ? `?${queryString}` : "";
   };
@@ -80,7 +108,9 @@
     }
     goto(
       resolve(
-        toPathname(`${page.url.pathname}${buildQuery(nextRange, statusValue)}`),
+        toPathname(
+          `${page.url.pathname}${buildQuery(nextRange, statusValue, seasonBoostValue)}`,
+        ),
       ),
       {
         keepFocus: true,
@@ -97,7 +127,9 @@
     }
     goto(
       resolve(
-        toPathname(`${page.url.pathname}${buildQuery(rangeValue, normalized)}`),
+        toPathname(
+          `${page.url.pathname}${buildQuery(rangeValue, normalized, seasonBoostValue)}`,
+        ),
       ),
       {
         keepFocus: true,
@@ -112,6 +144,26 @@
 
   const handleStatusChange = (nextStatus: string) => {
     applyStatus(nextStatus);
+  };
+
+  const applySeasonBoost = (nextMode: string) => {
+    const normalized = normalizeSeasonBoost(nextMode);
+    seasonBoostValue = normalized;
+    goto(
+      resolve(
+        toPathname(
+          `${page.url.pathname}${buildQuery(rangeValue, statusValue, normalized)}`,
+        ),
+      ),
+      {
+        keepFocus: true,
+        noScroll: true,
+      },
+    );
+  };
+
+  const handleSeasonBoostChange = (nextMode: string) => {
+    applySeasonBoost(nextMode);
   };
 
   const formatDiffPerGame = (pointDiff: number, games: number) => {
@@ -170,7 +222,7 @@
   };
 
   const navItems = $derived.by(() => {
-    const query = buildQuery(rangeValue, statusValue);
+    const query = buildQuery(rangeValue, statusValue, seasonBoostValue);
     const playersPath = `/chat/${slug}`;
     return [
       {
@@ -206,6 +258,7 @@
     const params = new SvelteURLSearchParams();
     const currentRange = page.url.searchParams.get("range");
     const currentStatus = page.url.searchParams.get("status");
+    const currentSeasonBoost = page.url.searchParams.get("seasonBoost");
     const storedRange = localStorage.getItem(rangeStorageKey);
     const storedStatus = localStorage.getItem(statusStorageKey);
     let changed = false;
@@ -227,6 +280,14 @@
       changed = true;
     }
 
+    if (data.isAdmin && currentSeasonBoost) {
+      const normalized = normalizeSeasonBoost(currentSeasonBoost);
+      seasonBoostValue = normalized;
+      if (normalized === "base") {
+        params.set("seasonBoost", normalized);
+      }
+    }
+
     if (changed) {
       goto(resolve(toPathname(`${page.url.pathname}?${params.toString()}`)), {
         replaceState: true,
@@ -238,7 +299,7 @@
 </script>
 
 <section
-  class="border-stroke shadow-card sticky top-3 z-[200] rounded-2xl border bg-white/90 p-3 backdrop-blur"
+  class="border-stroke shadow-card sticky top-3 z-200 rounded-2xl border bg-white/90 p-3 backdrop-blur"
 >
   <div class="flex flex-wrap items-center gap-3">
     <PrimaryNav items={navItems} />
@@ -279,6 +340,26 @@
           {/each}
         </Select.Content>
       </Select.Root>
+
+      {#if data.isAdmin && rangeValue.startsWith("season")}
+        <Select.Root
+          value={seasonBoostValue}
+          onValueChange={handleSeasonBoostChange}
+          type="single"
+        >
+          <Select.Trigger
+            size="sm"
+            class="border-stroke text-ink h-8 w-40 rounded-full bg-white/80 px-3 text-xs font-semibold"
+          >
+            <span class="truncate">{seasonBoostLabel}</span>
+          </Select.Trigger>
+          <Select.Content class="border-stroke bg-white">
+            {#each seasonBoostOptions as option (option.value)}
+              <Select.Item value={option.value} label={option.label} />
+            {/each}
+          </Select.Content>
+        </Select.Root>
+      {/if}
     </div>
   </div>
 </section>
@@ -298,7 +379,7 @@
   </div>
 
   <div class="mt-3 overflow-x-auto overflow-y-visible">
-    <table class="w-full min-w-[720px] text-xs">
+    <table class="w-full min-w-180 text-xs">
       <thead class="bg-white/70 text-left">
         <tr
           class="text-muted-foreground text-xs font-semibold tracking-[0.2em] uppercase"
@@ -407,7 +488,7 @@
 
 {#if matchTooltip}
   <div
-    class="border-stroke text-ink pointer-events-none fixed z-[2147483647] w-48 rounded-xl border bg-white p-1.5 text-xs leading-tight shadow-xl"
+    class="border-stroke text-ink pointer-events-none fixed z-2147483647 w-48 rounded-xl border bg-white p-1.5 text-xs leading-tight shadow-xl"
     style={`left: ${matchTooltip.x}px; top: ${matchTooltip.y}px;`}
     role="tooltip"
   >

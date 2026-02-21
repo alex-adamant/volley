@@ -28,9 +28,10 @@ export interface PlayerResult extends ChatUser, User {
 export function calculateResults(
   players: (ChatUser & { User: User })[],
   matches: Match[],
-  options?: { startDate?: Date; endDate?: Date },
+  options?: { startDate?: Date; endDate?: Date; disableSeasonBoost?: boolean },
 ) {
   const isSeason = !!options?.startDate;
+  const disableSeasonBoost = !!options?.disableSeasonBoost;
   const playerResults: PlayerResult[] = players.map((p) => {
     const rating = isSeason ? 1500 : p.initialRating;
     return {
@@ -87,10 +88,38 @@ export function calculateResults(
 
     const ratingDifference = A1.rating + A2.rating - B1.rating - B2.rating;
 
-    updateAfterMatch(A1, -ratingDifference, teamAResult, L, isSeason);
-    updateAfterMatch(A2, -ratingDifference, teamAResult, L, isSeason);
-    updateAfterMatch(B1, ratingDifference, teamBResult, L, isSeason);
-    updateAfterMatch(B2, ratingDifference, teamBResult, L, isSeason);
+    updateAfterMatch(
+      A1,
+      -ratingDifference,
+      teamAResult,
+      L,
+      isSeason,
+      disableSeasonBoost,
+    );
+    updateAfterMatch(
+      A2,
+      -ratingDifference,
+      teamAResult,
+      L,
+      isSeason,
+      disableSeasonBoost,
+    );
+    updateAfterMatch(
+      B1,
+      ratingDifference,
+      teamBResult,
+      L,
+      isSeason,
+      disableSeasonBoost,
+    );
+    updateAfterMatch(
+      B2,
+      ratingDifference,
+      teamBResult,
+      L,
+      isSeason,
+      disableSeasonBoost,
+    );
 
     A1.pointsFor += teamAScore;
     A1.pointsAgainst += teamBScore;
@@ -143,12 +172,13 @@ function updateAfterMatch(
   score: number,
   L: number,
   isSeason: boolean,
+  disableSeasonBoost: boolean,
 ) {
   const expectedScore = 1 / (1 + 10 ** (ratingDifference / 400));
 
   let kModifier = 1.0;
   if (isSeason) {
-    if (r.games < GAMES_CUTOFF) {
+    if (!disableSeasonBoost && r.games < GAMES_CUTOFF) {
       kModifier = 1.0 + (GAMES_CUTOFF - r.games) / GAMES_CUTOFF;
     }
   } else if (r.games < GAMES_CUTOFF) {

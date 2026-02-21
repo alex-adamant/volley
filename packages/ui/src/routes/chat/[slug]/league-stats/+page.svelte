@@ -13,12 +13,18 @@
   let { data } = $props();
 
   type StatusValue = "active" | "all";
+  type SeasonBoostValue = "boosted" | "base";
 
   const normalizeStatus = (value: string): StatusValue =>
     value === "all" ? "all" : "active";
 
   let rangeValue = $state("all");
   let statusValue = $state<StatusValue>("active");
+  const seasonBoostValue = $derived(
+    data.seasonBoostMode === "base"
+      ? ("base" as SeasonBoostValue)
+      : ("boosted" as SeasonBoostValue),
+  );
 
   const slug = $derived(page.params.slug ?? "");
   const rangeStorageKey = $derived(`volley-range:${slug}`);
@@ -64,10 +70,17 @@
 
   const toPathname = (value: string) => value as Pathname;
 
-  const buildQuery = (rangeKey: string, statusKey: string) => {
+  const buildQuery = (
+    rangeKey: string,
+    statusKey: string,
+    seasonBoostKey: SeasonBoostValue = seasonBoostValue,
+  ) => {
     const params = new SvelteURLSearchParams();
     if (rangeKey) params.set("range", rangeKey);
     if (statusKey) params.set("status", statusKey);
+    if (data.isAdmin && seasonBoostKey === "base") {
+      params.set("seasonBoost", "base");
+    }
     const queryString = params.toString();
     return queryString ? `?${queryString}` : "";
   };
@@ -79,7 +92,9 @@
     }
     goto(
       resolve(
-        toPathname(`${page.url.pathname}${buildQuery(nextRange, statusValue)}`),
+        toPathname(
+          `${page.url.pathname}${buildQuery(nextRange, statusValue, seasonBoostValue)}`,
+        ),
       ),
       {
         keepFocus: true,
@@ -96,7 +111,9 @@
     }
     goto(
       resolve(
-        toPathname(`${page.url.pathname}${buildQuery(rangeValue, normalized)}`),
+        toPathname(
+          `${page.url.pathname}${buildQuery(rangeValue, normalized, seasonBoostValue)}`,
+        ),
       ),
       {
         keepFocus: true,
@@ -122,7 +139,7 @@
   };
 
   const navItems = $derived.by(() => {
-    const query = buildQuery(rangeValue, statusValue);
+    const query = buildQuery(rangeValue, statusValue, seasonBoostValue);
     const playersPath = `/chat/${slug}`;
     return [
       {
@@ -158,6 +175,7 @@
     const params = new SvelteURLSearchParams();
     const currentRange = page.url.searchParams.get("range");
     const currentStatus = page.url.searchParams.get("status");
+    const currentSeasonBoost = page.url.searchParams.get("seasonBoost");
     const storedRange = localStorage.getItem(rangeStorageKey);
     const storedStatus = localStorage.getItem(statusStorageKey);
     let changed = false;
@@ -179,6 +197,10 @@
       changed = true;
     }
 
+    if (data.isAdmin && currentSeasonBoost === "base") {
+      params.set("seasonBoost", "base");
+    }
+
     if (changed) {
       goto(resolve(toPathname(`${page.url.pathname}?${params.toString()}`)), {
         replaceState: true,
@@ -190,7 +212,7 @@
 </script>
 
 <section
-  class="border-stroke shadow-card sticky top-3 z-[200] rounded-2xl border bg-white/90 p-3 backdrop-blur"
+  class="border-stroke shadow-card sticky top-3 z-200 rounded-2xl border bg-white/90 p-3 backdrop-blur"
 >
   <div class="flex flex-wrap items-center gap-3">
     <PrimaryNav items={navItems} />

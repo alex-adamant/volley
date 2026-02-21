@@ -111,6 +111,9 @@
     if (rangeKey) params.set("range", rangeKey);
     if (statusKey) params.set("status", statusKey);
     if (dayKey) params.set("day", dayKey);
+    if (data.isAdmin && page.url.searchParams.get("seasonBoost") === "base") {
+      params.set("seasonBoost", "base");
+    }
     const queryString = params.toString();
     return queryString ? `?${queryString}` : "";
   };
@@ -233,6 +236,7 @@
     const currentRange = page.url.searchParams.get("range");
     const currentStatus = page.url.searchParams.get("status");
     const currentDay = page.url.searchParams.get("day");
+    const currentSeasonBoost = page.url.searchParams.get("seasonBoost");
     const storedRange = localStorage.getItem(rangeStorageKey);
     const storedStatus = localStorage.getItem(statusStorageKey);
     let changed = false;
@@ -256,6 +260,10 @@
 
     if (currentDay) {
       params.set("day", currentDay);
+    }
+
+    if (data.isAdmin && currentSeasonBoost === "base") {
+      params.set("seasonBoost", "base");
     }
 
     if (changed) {

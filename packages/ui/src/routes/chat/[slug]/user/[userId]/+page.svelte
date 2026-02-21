@@ -24,6 +24,12 @@
   let chartCanvas: HTMLCanvasElement | null = null;
   let chart: Chart | null = null;
   let rangeValue = $state("all");
+  type SeasonBoostValue = "boosted" | "base";
+  const seasonBoostValue = $derived(
+    data.seasonBoostMode === "base"
+      ? ("base" as SeasonBoostValue)
+      : ("boosted" as SeasonBoostValue),
+  );
 
   const slug = $derived(page.params.slug ?? "");
   const rangeStorageKey = $derived(`volley-range:${slug}`);
@@ -59,9 +65,15 @@
     return gradient;
   };
 
-  const buildQuery = (rangeKey: string) => {
+  const buildQuery = (
+    rangeKey: string,
+    seasonBoostKey: SeasonBoostValue = seasonBoostValue,
+  ) => {
     const params = new SvelteURLSearchParams();
     if (rangeKey) params.set("range", rangeKey);
+    if (data.isAdmin && seasonBoostKey === "base") {
+      params.set("seasonBoost", "base");
+    }
     const queryString = params.toString();
     return queryString ? `?${queryString}` : "";
   };
@@ -73,10 +85,17 @@
     if (browser) {
       localStorage.setItem(rangeStorageKey, nextRange);
     }
-    goto(resolve(toPathname(`${page.url.pathname}${buildQuery(nextRange)}`)), {
-      keepFocus: true,
-      noScroll: true,
-    });
+    goto(
+      resolve(
+        toPathname(
+          `${page.url.pathname}${buildQuery(nextRange, seasonBoostValue)}`,
+        ),
+      ),
+      {
+        keepFocus: true,
+        noScroll: true,
+      },
+    );
   };
 
   const handleRangeChange = (nextRange: string) => {
@@ -141,12 +160,16 @@
     if (browser) {
       const params = new SvelteURLSearchParams();
       const currentRange = page.url.searchParams.get("range");
+      const currentSeasonBoost = page.url.searchParams.get("seasonBoost");
       const storedRange = localStorage.getItem(rangeStorageKey);
       if (currentRange) {
         params.set("range", currentRange);
       } else if (storedRange) {
         params.set("range", storedRange);
         rangeValue = storedRange;
+        if (data.isAdmin && currentSeasonBoost === "base") {
+          params.set("seasonBoost", "base");
+        }
         goto(resolve(toPathname(`${page.url.pathname}?${params.toString()}`)), {
           replaceState: true,
           keepFocus: true,

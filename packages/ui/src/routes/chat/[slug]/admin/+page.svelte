@@ -46,6 +46,9 @@
   const buildQuery = (rangeKey: string) => {
     const params = new SvelteURLSearchParams();
     if (rangeKey) params.set("range", rangeKey);
+    if (data.isAdmin && page.url.searchParams.get("seasonBoost") === "base") {
+      params.set("seasonBoost", "base");
+    }
     const queryString = params.toString();
     return queryString ? `?${queryString}` : "";
   };
@@ -101,11 +104,15 @@
     if (!browser) return;
     const params = new SvelteURLSearchParams();
     const currentRange = page.url.searchParams.get("range");
+    const currentSeasonBoost = page.url.searchParams.get("seasonBoost");
     const storedRange = localStorage.getItem(rangeStorageKey);
     if (currentRange) {
       params.set("range", currentRange);
     } else if (storedRange) {
       params.set("range", storedRange);
+      if (data.isAdmin && currentSeasonBoost === "base") {
+        params.set("seasonBoost", "base");
+      }
       rangeValue = storedRange;
       goto(resolve(toPathname(`${page.url.pathname}?${params.toString()}`)), {
         replaceState: true,

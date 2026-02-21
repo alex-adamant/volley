@@ -1,63 +1,26 @@
-import { error } from "@sveltejs/kit";
-import { calculateWinrate } from "$lib";
-import { calculateResults } from "$lib/rating";
-import { adminEnabled, isAdmin } from "$lib/server/admin";
-import { prisma } from "$lib/server/prisma";
-import { getRangeOptions } from "$lib/server/ranges";
+import { loadChatRatingData } from "$lib/server/rating-data";
 
 export async function load({ params, url, cookies }) {
   const slug = params.slug;
   const rangeKey = url.searchParams.get("range") ?? "all";
-  const statusParam = url.searchParams.get("status") ?? "active";
-  const status = statusParam === "all" ? "all" : "active";
-
-  const chat = await prisma.chat.findUnique({ where: { slug } });
-  if (!chat) {
-    throw error(404, "Chat not found");
-  }
-
-  const seasons = await prisma.season.findMany({
-    where: { chatId: chat.id },
-    orderBy: { startDate: "desc" },
-  });
-
-  const rangeOptions = getRangeOptions(seasons);
-  const resolvedKey =
-    rangeKey === "season"
-      ? rangeOptions.find((range) => range.key.startsWith("season"))?.key
-      : rangeKey;
-  const activeRange =
-    rangeOptions.find((range) => range.key === resolvedKey) ?? rangeOptions[0];
-
-  const users = await prisma.chatUser.findMany({
-    where: { Chat: { is: { slug } } },
-    include: { User: true },
-    orderBy: { userId: "asc" },
-  });
-
-  const matches = await prisma.match.findMany({
-    where: {
-      Chat: { is: { slug } },
-      ...(activeRange.start && activeRange.end
-        ? { day: { gte: activeRange.start, lte: activeRange.end } }
-        : {}),
-    },
-    orderBy: { id: "asc" },
-  });
-
-  const results = calculateResults(
+  const {
+    chat,
     users,
     matches,
-    activeRange.start
-      ? { startDate: activeRange.start, endDate: activeRange.end }
-      : undefined,
-  )
-    .filter((player) => !player.isHidden)
-    .filter((player) => (status === "active" ? player.isActive : true))
-    .map((player) => ({
-      ...player,
-      winrate: calculateWinrate(player),
-    }));
+    results,
+    status,
+    rangeOptions,
+    activeRange,
+    seasonBoostMode,
+    isAdmin,
+    adminEnabled,
+  } = await loadChatRatingData({
+    slug,
+    rangeKey,
+    statusParam: url.searchParams.get("status"),
+    seasonBoostParam: url.searchParams.get("seasonBoost"),
+    cookies,
+  });
 
   const activePlayers = users.filter((p) => p.isActive && !p.isHidden).length;
   const ratings = results.map((player) => player.rating);
@@ -198,17 +161,10 @@ export async function load({ params, url, cookies }) {
       mostActivePlayer,
       bestDiff,
     },
-    rangeOptions: rangeOptions.map(({ key, label, note }) => ({
-      key,
-      label,
-      note,
-    })),
-    activeRange: {
-      key: activeRange.key,
-      label: activeRange.label,
-      note: activeRange.note,
-    },
-    isAdmin: await isAdmin(cookies),
-    adminEnabled: await adminEnabled(),
+    rangeOptions,
+    activeRange,
+    seasonBoostMode,
+    isAdmin,
+    adminEnabled,
   };
 }
