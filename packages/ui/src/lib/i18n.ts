@@ -57,8 +57,33 @@ const ru: Record<string, string> = {
   "Delete match": "Удалить матч",
   "Tap to edit": "Нажмите для редактирования",
   "No matches yet.": "Матчей пока нет.",
+  "ELO pre-match": "ELO до матча",
+  Favorite: "Фаворит",
+  Underdog: "Андердог",
+  Upset: "Апсет",
+  "No clear favorite": "Явного фаворита нет",
   Standings: "Таблица",
   "No standings yet.": "Таблица пока пустая.",
+  Upsets: "Апсеты",
+  "No clear favorite matches in this range yet.":
+    "В этом периоде пока нет матчей с явным фаворитом.",
+  "Underdog wins in {rate} of favorite matches":
+    "Андердоги выигрывают в {rate} матчей с фаворитом",
+  "Best underdogs": "Лучшие андердоги",
+  "Top underdog wins": "Топ побед андердогов",
+  "No underdog wins yet.": "Побед андердогов пока нет.",
+  "Worst favorites": "Худшие фавориты",
+  "Worst underdogs": "Худшие андердоги",
+  "Best favorites": "Лучшие фавориты",
+  "Top favorite losses": "Топ поражений фаворитов",
+  "No favorite losses yet.": "Поражений фаворитов пока нет.",
+  "Not enough underdog matches yet.":
+    "Пока недостаточно матчей в роли андердога.",
+  "Not enough favorite matches yet.":
+    "Пока недостаточно матчей в роли фаворита.",
+  "Excluded bottom {percent}% by role sample size.":
+    "Исключены нижние {percent}% по размеру выборки в роли.",
+  "Ranking is weighted by sample size.": "Рейтинг взвешен по размеру выборки.",
   "W-L": "В-П",
   games: "игр",
   Today: "Сегодня",

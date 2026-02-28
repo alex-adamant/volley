@@ -14,12 +14,16 @@
   let { data, form } = $props();
 
   const result = $derived(data.result);
+  const roleStats = $derived(data.roleStats);
   const user = $derived(data.user);
   const matchSummaries = $derived(data.matchSummaries);
   const bestPartners = $derived(data.bestPartners);
   const worstPartners = $derived(data.worstPartners);
   const toughOpponents = $derived(data.toughOpponents);
   const easyOpponents = $derived(data.easyOpponents);
+  const statusValue = $derived(
+    data.status === "all" ? ("all" as const) : ("active" as const),
+  );
 
   let chartCanvas: HTMLCanvasElement | null = null;
   let chart: Chart | null = null;
@@ -68,9 +72,11 @@
   const buildQuery = (
     rangeKey: string,
     seasonBoostKey: SeasonBoostValue = seasonBoostValue,
+    statusKey: "active" | "all" = statusValue,
   ) => {
     const params = new SvelteURLSearchParams();
     if (rangeKey) params.set("range", rangeKey);
+    if (statusKey) params.set("status", statusKey);
     if (data.isAdmin && seasonBoostKey === "base") {
       params.set("seasonBoost", "base");
     }
@@ -204,6 +210,20 @@
 <section class="border-stroke shadow-card rounded-2xl border bg-white/90 p-3">
   <div class="flex flex-wrap items-center justify-between gap-2">
     <div>
+      <div class="text-muted-foreground mb-1 text-xs font-semibold">
+        <a
+          class="hover:text-ink transition"
+          href={resolve(
+            toPathname(
+              `/chat/${slug}${buildQuery(rangeValue, seasonBoostValue, statusValue)}`,
+            ),
+          )}
+        >
+          {$t("Players")}
+        </a>
+        <span class="mx-1">→</span>
+        <span>{user.name}</span>
+      </div>
       <div class="text-ink text-sm font-semibold">{user.name}</div>
       <div class="text-muted-foreground text-xs">
         {$t("Rating")}
@@ -364,6 +384,36 @@
       </div>
       <div class="text-muted-foreground text-xs">
         {$t("Season win %")}
+      </div>
+    </div>
+    <div class="border-stroke rounded-xl border bg-white/70 p-2">
+      <div
+        class="text-muted-foreground text-xs font-semibold tracking-[0.25em] uppercase"
+      >
+        {$t("Favorite")}
+      </div>
+      <div class="mt-2 text-lg font-semibold tabular-nums">
+        {roleStats.favoriteWins}-{roleStats.favoriteLosses}
+      </div>
+      <div class="text-muted-foreground text-xs">
+        {roleStats.favoriteWinrate}% {$t("Win%")} · {$t("over {games}", {
+          games: roleStats.favoriteMatches,
+        })}
+      </div>
+    </div>
+    <div class="border-stroke rounded-xl border bg-white/70 p-2">
+      <div
+        class="text-muted-foreground text-xs font-semibold tracking-[0.25em] uppercase"
+      >
+        {$t("Underdog")}
+      </div>
+      <div class="mt-2 text-lg font-semibold tabular-nums">
+        {roleStats.underdogWins}-{roleStats.underdogLosses}
+      </div>
+      <div class="text-muted-foreground text-xs">
+        {roleStats.underdogWinrate}% {$t("Win%")} · {$t("over {games}", {
+          games: roleStats.underdogMatches,
+        })}
       </div>
     </div>
     <div class="border-stroke rounded-xl border bg-white/70 p-2">

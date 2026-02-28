@@ -137,6 +137,7 @@
     const prefix = safe > 0 ? "+" : "";
     return `${prefix}${safe.toFixed(1)}`;
   };
+  const formatProbability = (value: number) => `${(value * 100).toFixed(1)}%`;
 
   const navItems = $derived.by(() => {
     const query = buildQuery(rangeValue, statusValue, seasonBoostValue);
@@ -371,19 +372,6 @@
       <div
         class="text-muted-foreground text-xs font-semibold tracking-[0.25em] uppercase"
       >
-        {$t("Closest match")}
-      </div>
-      <div class="mt-2 text-lg font-semibold tabular-nums">
-        {data.stats.closestMatch?.value ?? "-"}
-      </div>
-      <div class="text-muted-foreground text-xs">
-        {data.stats.closestMatch?.day ?? $t("n/a")}
-      </div>
-    </div>
-    <div class="border-stroke rounded-xl border bg-white/70 p-2">
-      <div
-        class="text-muted-foreground text-xs font-semibold tracking-[0.25em] uppercase"
-      >
         {$t("Biggest win")}
       </div>
       <div class="mt-2 text-lg font-semibold tabular-nums">
@@ -440,6 +428,145 @@
           </tr>
         </tbody>
       </table>
+    </div>
+  </div>
+</section>
+
+<section
+  class="border-stroke shadow-card mt-3 rounded-2xl border bg-white/90 p-3"
+>
+  <div class="flex items-center justify-between gap-2">
+    <div class="text-ink text-sm font-semibold">{$t("Upsets")}</div>
+    <div class="text-muted-foreground text-xs font-semibold tabular-nums">
+      {data.stats.upsets.underdogWins}/{data.stats.upsets.matchesWithFavorite}
+    </div>
+  </div>
+  <div class="text-muted-foreground mt-1 text-xs">
+    {#if data.stats.upsets.upsetRate === null}
+      {$t("No clear favorite matches in this range yet.")}
+    {:else}
+      {$t("Underdog wins in {rate} of favorite matches", {
+        rate: formatProbability(data.stats.upsets.upsetRate),
+      })}
+    {/if}
+  </div>
+  <div class="text-ink/70 mt-1 text-xs">
+    {$t("No clear favorite")}: {data.stats.upsets.noFavoriteMatches}
+  </div>
+  <div class="text-muted-foreground mt-1 text-xs">
+    {$t("Excluded bottom {percent}% by role sample size.", {
+      percent: data.stats.upsets.roleMatchesCutoffPercent,
+    })}
+  </div>
+
+  <div class="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+    <div>
+      <div
+        class="text-muted-foreground text-xs font-semibold tracking-[0.2em] uppercase"
+      >
+        {$t("Best underdogs")}
+      </div>
+      <div class="mt-2 flex flex-col gap-1.5">
+        {#if data.stats.upsets.topUnderdogWins.length === 0}
+          <div class="text-muted-foreground text-xs">
+            {$t("No underdog wins yet.")}
+          </div>
+        {:else}
+          {#each data.stats.upsets.topUnderdogWins as row (row.id)}
+            <div
+              class="border-stroke/60 flex items-center justify-between rounded-lg border bg-white/70 px-2 py-1.5 text-xs"
+            >
+              <span class="truncate pr-2">{row.name}</span>
+              <span class="font-semibold tabular-nums">
+                {formatProbability(row.underdogWinRate ?? 0)} · {row.underdogWins}/{row.underdogMatches}
+              </span>
+            </div>
+          {/each}
+        {/if}
+      </div>
+    </div>
+    <div>
+      <div
+        class="text-muted-foreground text-xs font-semibold tracking-[0.2em] uppercase"
+      >
+        {$t("Worst favorites")}
+      </div>
+      <div class="mt-2 flex flex-col gap-1.5">
+        {#if data.stats.upsets.topFavoriteLosses.length === 0}
+          <div class="text-muted-foreground text-xs">
+            {$t("No favorite losses yet.")}
+          </div>
+        {:else}
+          {#each data.stats.upsets.topFavoriteLosses as row (row.id)}
+            <div
+              class="border-stroke/60 flex items-center justify-between rounded-lg border bg-white/70 px-2 py-1.5 text-xs"
+            >
+              <span class="truncate pr-2">{row.name}</span>
+              <span class="font-semibold tabular-nums">
+                {formatProbability(
+                  row.favoriteMatches > 0
+                    ? row.favoriteWins / row.favoriteMatches
+                    : 0,
+                )} · {row.favoriteWins}/{row.favoriteMatches}
+              </span>
+            </div>
+          {/each}
+        {/if}
+      </div>
+    </div>
+    <div>
+      <div
+        class="text-muted-foreground text-xs font-semibold tracking-[0.2em] uppercase"
+      >
+        {$t("Worst underdogs")}
+      </div>
+      <div class="mt-2 flex flex-col gap-1.5">
+        {#if data.stats.upsets.topUnderdogLosses.length === 0}
+          <div class="text-muted-foreground text-xs">
+            {$t("Not enough underdog matches yet.")}
+          </div>
+        {:else}
+          {#each data.stats.upsets.topUnderdogLosses as row (row.id)}
+            <div
+              class="border-stroke/60 flex items-center justify-between rounded-lg border bg-white/70 px-2 py-1.5 text-xs"
+            >
+              <span class="truncate pr-2">{row.name}</span>
+              <span class="font-semibold tabular-nums">
+                {formatProbability(row.underdogWinRate ?? 0)} · {row.underdogWins}/{row.underdogMatches}
+              </span>
+            </div>
+          {/each}
+        {/if}
+      </div>
+    </div>
+    <div>
+      <div
+        class="text-muted-foreground text-xs font-semibold tracking-[0.2em] uppercase"
+      >
+        {$t("Best favorites")}
+      </div>
+      <div class="mt-2 flex flex-col gap-1.5">
+        {#if data.stats.upsets.topFavoriteWins.length === 0}
+          <div class="text-muted-foreground text-xs">
+            {$t("Not enough favorite matches yet.")}
+          </div>
+        {:else}
+          {#each data.stats.upsets.topFavoriteWins as row (row.id)}
+            <div
+              class="border-stroke/60 flex items-center justify-between rounded-lg border bg-white/70 px-2 py-1.5 text-xs"
+            >
+              <span class="truncate pr-2">{row.name}</span>
+              <span class="font-semibold tabular-nums">
+                {formatProbability(
+                  row.favoriteMatches > 0
+                    ? row.favoriteWins / row.favoriteMatches
+                    : 0,
+                )} · {row.favoriteWins}/{row.favoriteMatches}
+              </span>
+            </div>
+          {/each}
+        {/if}
+      </div>
     </div>
   </div>
 </section>

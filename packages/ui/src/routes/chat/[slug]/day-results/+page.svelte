@@ -16,18 +16,16 @@
 
   let { data, form } = $props();
 
-  type StatusValue = "active" | "all";
-
-  const normalizeStatus = (value: string): StatusValue =>
+  const normalizeStatus = (value: string): "active" | "all" =>
     value === "all" ? "all" : "active";
 
   let rangeValue = $state("all");
-  let statusValue = $state<StatusValue>("active");
   let dayValue = $state("");
 
   const slug = $derived(page.params.slug ?? "");
   const rangeStorageKey = $derived(`volley-range:${slug}`);
   const statusStorageKey = $derived(`volley-status:${slug}`);
+  const navStatusValue = $derived(data.status === "all" ? "all" : "active");
 
   const rangeOptions = $derived(
     data.rangeOptions.map((range) => ({
@@ -38,14 +36,6 @@
   const rangeLabel = $derived(
     rangeOptions.find((option) => option.value === rangeValue)?.label ??
       $t("Range"),
-  );
-  const statusOptions = $derived([
-    { value: "active", label: $t("Active") },
-    { value: "all", label: $t("All") },
-  ]);
-  const statusLabel = $derived(
-    statusOptions.find((option) => option.value === statusValue)?.label ??
-      $t("Status"),
   );
 
   const dayOptions = $derived(
@@ -63,7 +53,6 @@
   let createPlayerB2 = $state("");
 
   let lastRangeKey = $state("all");
-  let lastStatusValue = $state<StatusValue>("active");
   let lastDayKey = $state("");
 
   $effect(() => {
@@ -71,14 +60,6 @@
     if (next !== lastRangeKey) {
       lastRangeKey = next;
       rangeValue = next;
-    }
-  });
-
-  $effect(() => {
-    const next = normalizeStatus(data.status ?? "active");
-    if (next !== lastStatusValue) {
-      lastStatusValue = next;
-      statusValue = next;
     }
   });
 
@@ -105,12 +86,29 @@
   const toPathname = (value: string) => value as Pathname;
   const formatDateInput = (value: Date) =>
     new Date(value).toLocaleDateString("en-CA");
+  const formatProbability = (value: number) => `${(value * 100).toFixed(1)}%`;
+  const formatAvgRating = (value: number) => value.toFixed(1);
 
-  const buildQuery = (rangeKey: string, statusKey: string, dayKey?: string) => {
+  const buildResultsQuery = (
+    rangeKey: string,
+    dayKey?: string,
+    statusKey: "active" | "all" = navStatusValue,
+  ) => {
     const params = new SvelteURLSearchParams();
     if (rangeKey) params.set("range", rangeKey);
     if (statusKey) params.set("status", statusKey);
     if (dayKey) params.set("day", dayKey);
+    if (data.isAdmin && page.url.searchParams.get("seasonBoost") === "base") {
+      params.set("seasonBoost", "base");
+    }
+    const queryString = params.toString();
+    return queryString ? `?${queryString}` : "";
+  };
+
+  const buildNavQuery = (rangeKey: string, statusKey: "active" | "all") => {
+    const params = new SvelteURLSearchParams();
+    if (rangeKey) params.set("range", rangeKey);
+    if (statusKey) params.set("status", statusKey);
     if (data.isAdmin && page.url.searchParams.get("seasonBoost") === "base") {
       params.set("seasonBoost", "base");
     }
@@ -126,26 +124,7 @@
     }
     goto(
       resolve(
-        toPathname(`${page.url.pathname}${buildQuery(nextRange, statusValue)}`),
-      ),
-      {
-        keepFocus: true,
-        noScroll: true,
-      },
-    );
-  };
-
-  const applyStatus = (nextStatus: string) => {
-    const normalized = normalizeStatus(nextStatus);
-    statusValue = normalized;
-    if (browser) {
-      localStorage.setItem(statusStorageKey, normalized);
-    }
-    goto(
-      resolve(
-        toPathname(
-          `${page.url.pathname}${buildQuery(rangeValue, normalized, dayValue)}`,
-        ),
+        toPathname(`${page.url.pathname}${buildResultsQuery(nextRange)}`),
       ),
       {
         keepFocus: true,
@@ -159,7 +138,7 @@
     goto(
       resolve(
         toPathname(
-          `${page.url.pathname}${buildQuery(rangeValue, statusValue, nextDay)}`,
+          `${page.url.pathname}${buildResultsQuery(rangeValue, nextDay)}`,
         ),
       ),
       {
@@ -171,10 +150,6 @@
 
   const handleRangeChange = (nextRange: string) => {
     applyRange(nextRange);
-  };
-
-  const handleStatusChange = (nextStatus: string) => {
-    applyStatus(nextStatus);
   };
 
   const handleDayChange = (nextDay: string) => {
@@ -194,10 +169,9 @@
   };
 
   const navItems = $derived.by(() => {
-    const baseQuery = buildQuery(rangeValue, statusValue);
-    const resultsQuery = buildQuery(
+    const baseQuery = buildNavQuery(rangeValue, navStatusValue);
+    const resultsQuery = buildResultsQuery(
       rangeValue,
-      statusValue,
       dayValue || data.selectedDay?.key || "",
     );
     const playersPath = `/chat/${slug}`;
@@ -250,11 +224,9 @@
     }
 
     if (currentStatus) {
-      params.set("status", currentStatus);
+      params.set("status", normalizeStatus(currentStatus));
     } else if (storedStatus) {
-      const normalized = normalizeStatus(storedStatus);
-      params.set("status", normalized);
-      statusValue = normalized;
+      params.set("status", normalizeStatus(storedStatus));
       changed = true;
     }
 
@@ -296,24 +268,6 @@
         </Select.Trigger>
         <Select.Content class="border-stroke bg-white">
           {#each rangeOptions as option (option.value)}
-            <Select.Item value={option.value} label={option.label} />
-          {/each}
-        </Select.Content>
-      </Select.Root>
-
-      <Select.Root
-        value={statusValue}
-        onValueChange={handleStatusChange}
-        type="single"
-      >
-        <Select.Trigger
-          size="sm"
-          class="border-stroke text-ink h-8 w-28 rounded-full bg-white/80 px-3 text-xs font-semibold"
-        >
-          <span class="truncate">{statusLabel}</span>
-        </Select.Trigger>
-        <Select.Content class="border-stroke bg-white">
-          {#each statusOptions as option (option.value)}
             <Select.Item value={option.value} label={option.label} />
           {/each}
         </Select.Content>
@@ -615,6 +569,11 @@
         {#each data.matches as match (match.id)}
           {@const teamAWon = match.teamAScore > match.teamBScore}
           {@const teamBWon = match.teamBScore > match.teamAScore}
+          {@const upsetWinnerSide = match.underdogWon
+            ? teamAWon
+              ? "A"
+              : "B"
+            : null}
           {#if data.isAdmin}
             <details
               class="border-stroke/60 rounded-xl border bg-white/80 p-2 sm:p-3"
@@ -623,14 +582,35 @@
                 <span class="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
                   <span
                     class={twMerge(
-                      "rounded-lg px-2 py-1 text-xs leading-tight sm:px-3 sm:py-2 sm:text-xs",
+                      "relative rounded-lg px-2 py-1 text-xs leading-tight sm:px-3 sm:py-2 sm:text-xs",
                       teamAWon
-                        ? "bg-ink/5 text-ink font-semibold"
+                        ? "text-ink bg-emerald-50/80 font-semibold ring-1 ring-emerald-200/80"
                         : "text-ink/60 font-medium",
                     )}
                   >
-                    <span class="block truncate">{match.playerA1Name}</span>
-                    <span class="block truncate">{match.playerA2Name}</span>
+                    {#if upsetWinnerSide === "A"}
+                      <span
+                        class="absolute -top-2 left-2 z-10 rounded-full border border-amber-400/60 bg-amber-100 px-1.5 py-0.5 text-[9px] leading-none font-semibold tracking-[0.08em] text-amber-800 uppercase"
+                      >
+                        {$t("Upset")}
+                      </span>
+                    {/if}
+                    <span class="flex items-center gap-1">
+                      <span class="block min-w-0 flex-1 truncate">
+                        {match.playerA1Name}
+                      </span>
+                      <span class="text-ink/45 text-[10px] tabular-nums">
+                        {match.playerA1RatingBefore}
+                      </span>
+                    </span>
+                    <span class="flex items-center gap-1">
+                      <span class="block min-w-0 flex-1 truncate">
+                        {match.playerA2Name}
+                      </span>
+                      <span class="text-ink/45 text-[10px] tabular-nums">
+                        {match.playerA2RatingBefore}
+                      </span>
+                    </span>
                   </span>
                   <span class="text-center">
                     <span
@@ -644,16 +624,56 @@
                   </span>
                   <span
                     class={twMerge(
-                      "rounded-lg px-2 py-1 text-right text-xs leading-tight sm:px-3 sm:py-2 sm:text-xs",
+                      "relative rounded-lg px-2 py-1 text-right text-xs leading-tight sm:px-3 sm:py-2 sm:text-xs",
                       teamBWon
-                        ? "bg-ink/5 text-ink font-semibold"
+                        ? "text-ink bg-emerald-50/80 font-semibold ring-1 ring-emerald-200/80"
                         : "text-ink/60 font-medium",
                     )}
                   >
-                    <span class="block truncate">{match.playerB1Name}</span>
-                    <span class="block truncate">{match.playerB2Name}</span>
+                    {#if upsetWinnerSide === "B"}
+                      <span
+                        class="absolute -top-2 right-2 z-10 rounded-full border border-amber-400/60 bg-amber-100 px-1.5 py-0.5 text-[9px] leading-none font-semibold tracking-[0.08em] text-amber-800 uppercase"
+                      >
+                        {$t("Upset")}
+                      </span>
+                    {/if}
+                    <span class="flex items-center justify-end gap-1">
+                      <span class="text-ink/45 text-[10px] tabular-nums">
+                        {match.playerB1RatingBefore}
+                      </span>
+                      <span class="block min-w-0 flex-1 truncate text-right">
+                        {match.playerB1Name}
+                      </span>
+                    </span>
+                    <span class="flex items-center justify-end gap-1">
+                      <span class="text-ink/45 text-[10px] tabular-nums">
+                        {match.playerB2RatingBefore}
+                      </span>
+                      <span class="block min-w-0 flex-1 truncate text-right">
+                        {match.playerB2Name}
+                      </span>
+                    </span>
                   </span>
                 </span>
+                <div
+                  class="mt-2 rounded-lg border border-black/5 bg-white/60 p-2"
+                >
+                  <div
+                    class="text-muted-foreground grid grid-cols-[1fr_auto_1fr] items-center gap-2 text-[11px]"
+                  >
+                    <span class="text-right font-semibold tabular-nums">
+                      {formatProbability(match.teamAWinProbability)}
+                      ({formatAvgRating(match.teamAAvgRatingBefore)})
+                    </span>
+                    <span class="tracking-[0.12em] uppercase">
+                      {$t("ELO pre-match")}
+                    </span>
+                    <span class="font-semibold tabular-nums">
+                      {formatProbability(match.teamBWinProbability)}
+                      ({formatAvgRating(match.teamBAvgRatingBefore)})
+                    </span>
+                  </div>
+                </div>
               </summary>
 
               <form
@@ -848,14 +868,35 @@
               <div class="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
                 <div
                   class={twMerge(
-                    "rounded-lg px-2 py-1 text-xs leading-tight sm:px-3 sm:py-2 sm:text-xs",
+                    "relative rounded-lg px-2 py-1 text-xs leading-tight sm:px-3 sm:py-2 sm:text-xs",
                     teamAWon
-                      ? "bg-ink/5 text-ink font-semibold"
+                      ? "text-ink bg-emerald-50/80 font-semibold ring-1 ring-emerald-200/80"
                       : "text-ink/60 font-medium",
                   )}
                 >
-                  <div class="truncate">{match.playerA1Name}</div>
-                  <div class="truncate">{match.playerA2Name}</div>
+                  {#if upsetWinnerSide === "A"}
+                    <span
+                      class="absolute -top-2 left-2 z-10 rounded-full border border-amber-400/60 bg-amber-100 px-1.5 py-0.5 text-[9px] leading-none font-semibold tracking-[0.08em] text-amber-800 uppercase"
+                    >
+                      {$t("Upset")}
+                    </span>
+                  {/if}
+                  <div class="flex items-center gap-1">
+                    <span class="min-w-0 flex-1 truncate"
+                      >{match.playerA1Name}</span
+                    >
+                    <span class="text-ink/45 text-[10px] tabular-nums">
+                      {match.playerA1RatingBefore}
+                    </span>
+                  </div>
+                  <div class="flex items-center gap-1">
+                    <span class="min-w-0 flex-1 truncate"
+                      >{match.playerA2Name}</span
+                    >
+                    <span class="text-ink/45 text-[10px] tabular-nums">
+                      {match.playerA2RatingBefore}
+                    </span>
+                  </div>
                 </div>
                 <div class="text-center">
                   <div class="text-ink text-sm font-semibold tabular-nums">
@@ -864,14 +905,54 @@
                 </div>
                 <div
                   class={twMerge(
-                    "rounded-lg px-2 py-1 text-right text-xs leading-tight sm:px-3 sm:py-2 sm:text-xs",
+                    "relative rounded-lg px-2 py-1 text-right text-xs leading-tight sm:px-3 sm:py-2 sm:text-xs",
                     teamBWon
-                      ? "bg-ink/5 text-ink font-semibold"
+                      ? "text-ink bg-emerald-50/80 font-semibold ring-1 ring-emerald-200/80"
                       : "text-ink/60 font-medium",
                   )}
                 >
-                  <div class="truncate">{match.playerB1Name}</div>
-                  <div class="truncate">{match.playerB2Name}</div>
+                  {#if upsetWinnerSide === "B"}
+                    <span
+                      class="absolute -top-2 right-2 z-10 rounded-full border border-amber-400/60 bg-amber-100 px-1.5 py-0.5 text-[9px] leading-none font-semibold tracking-[0.08em] text-amber-800 uppercase"
+                    >
+                      {$t("Upset")}
+                    </span>
+                  {/if}
+                  <div class="flex items-center justify-end gap-1">
+                    <span class="text-ink/45 text-[10px] tabular-nums">
+                      {match.playerB1RatingBefore}
+                    </span>
+                    <span class="min-w-0 flex-1 truncate text-right">
+                      {match.playerB1Name}
+                    </span>
+                  </div>
+                  <div class="flex items-center justify-end gap-1">
+                    <span class="text-ink/45 text-[10px] tabular-nums">
+                      {match.playerB2RatingBefore}
+                    </span>
+                    <span class="min-w-0 flex-1 truncate text-right">
+                      {match.playerB2Name}
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <div
+                class="mt-2 rounded-lg border border-black/5 bg-white/60 p-2"
+              >
+                <div
+                  class="text-muted-foreground grid grid-cols-[1fr_auto_1fr] items-center gap-2 text-[11px]"
+                >
+                  <span class="text-right font-semibold tabular-nums">
+                    {formatProbability(match.teamAWinProbability)}
+                    ({formatAvgRating(match.teamAAvgRatingBefore)})
+                  </span>
+                  <span class="tracking-[0.12em] uppercase">
+                    {$t("ELO pre-match")}
+                  </span>
+                  <span class="font-semibold tabular-nums">
+                    {formatProbability(match.teamBWinProbability)}
+                    ({formatAvgRating(match.teamBAvgRatingBefore)})
+                  </span>
                 </div>
               </div>
             </div>
@@ -881,55 +962,57 @@
     </div>
   </div>
 
-  <div class="border-stroke shadow-card rounded-2xl border bg-white/90 p-3">
-    <div class="text-ink text-sm font-semibold">{$t("Standings")}</div>
-    <div class="mt-3 overflow-x-auto">
-      <table class="w-full min-w-90 text-xs">
-        <thead class="bg-white/70 text-left">
-          <tr
-            class="text-muted-foreground text-xs font-semibold tracking-[0.2em] uppercase"
-          >
-            <th class="p-2">#</th>
-            <th class="p-2">{$t("Player")}</th>
-            <th class="p-2 text-right">{$t("W-L")}</th>
-            <th class="p-2 text-right">{$t("Points")}</th>
-            <th class="p-2 text-right">{$t("Diff")}</th>
-          </tr>
-        </thead>
-        <tbody>
-          {#if data.standings.length === 0}
-            <tr>
-              <td class="text-muted-foreground px-2 py-4" colspan="5">
-                {$t("No standings yet.")}
-              </td>
+  <div class="flex flex-col gap-3">
+    <div class="border-stroke shadow-card rounded-2xl border bg-white/90 p-3">
+      <div class="text-ink text-sm font-semibold">{$t("Standings")}</div>
+      <div class="mt-3 overflow-x-auto">
+        <table class="w-full min-w-90 text-xs">
+          <thead class="bg-white/70 text-left">
+            <tr
+              class="text-muted-foreground text-xs font-semibold tracking-[0.2em] uppercase"
+            >
+              <th class="p-2">#</th>
+              <th class="p-2">{$t("Player")}</th>
+              <th class="p-2 text-right">{$t("W-L")}</th>
+              <th class="p-2 text-right">{$t("Points")}</th>
+              <th class="p-2 text-right">{$t("Diff")}</th>
             </tr>
-          {:else}
-            {#each data.standings as row, index (row.id)}
-              <tr class="border-stroke/50 border-b last:border-b-0">
-                <td class="p-2 font-semibold tabular-nums">
-                  {index + 1}
-                </td>
-                <td class="p-2">
-                  <div class="font-semibold">{row.name}</div>
-                  <div class="text-muted-foreground text-xs">
-                    {row.games}
-                    {$t("games")}
-                  </div>
-                </td>
-                <td class="p-2 text-right tabular-nums">
-                  {row.wins}-{row.losses}
-                </td>
-                <td class="p-2 text-right tabular-nums">
-                  {row.pointsFor} / {row.pointsAgainst}
-                </td>
-                <td class="p-2 text-right font-semibold tabular-nums">
-                  {row.pointDiff > 0 ? "+" : ""}{row.pointDiff}
+          </thead>
+          <tbody>
+            {#if data.standings.length === 0}
+              <tr>
+                <td class="text-muted-foreground px-2 py-4" colspan="5">
+                  {$t("No standings yet.")}
                 </td>
               </tr>
-            {/each}
-          {/if}
-        </tbody>
-      </table>
+            {:else}
+              {#each data.standings as row, index (row.id)}
+                <tr class="border-stroke/50 border-b last:border-b-0">
+                  <td class="p-2 font-semibold tabular-nums">
+                    {index + 1}
+                  </td>
+                  <td class="p-2">
+                    <div class="font-semibold">{row.name}</div>
+                    <div class="text-muted-foreground text-xs">
+                      {row.games}
+                      {$t("games")}
+                    </div>
+                  </td>
+                  <td class="p-2 text-right tabular-nums">
+                    {row.wins}-{row.losses}
+                  </td>
+                  <td class="p-2 text-right tabular-nums">
+                    {row.pointsFor} / {row.pointsAgainst}
+                  </td>
+                  <td class="p-2 text-right font-semibold tabular-nums">
+                    {row.pointDiff > 0 ? "+" : ""}{row.pointDiff}
+                  </td>
+                </tr>
+              {/each}
+            {/if}
+          </tbody>
+        </table>
+      </div>
     </div>
   </div>
 </section>

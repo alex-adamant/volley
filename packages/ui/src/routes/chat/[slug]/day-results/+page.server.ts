@@ -1,5 +1,6 @@
 import { error, fail, redirect } from "@sveltejs/kit";
 import { adminEnabled, assertAdmin, isAdmin } from "$lib/server/admin";
+import { buildEloStats } from "$lib/server/elo-stats";
 import { prisma } from "$lib/server/prisma";
 import { getRangeOptions } from "$lib/server/ranges";
 
@@ -35,6 +36,10 @@ export async function load({ params, url, cookies }) {
       : rangeKey;
   const activeRange =
     rangeOptions.find((range) => range.key === resolvedKey) ?? rangeOptions[0];
+  const adminUser = await isAdmin(cookies);
+  const isSeason = activeRange.key.startsWith("season");
+  const disableSeasonBoost =
+    adminUser && url.searchParams.get("seasonBoost") === "base" && isSeason;
 
   const chatUsers = await prisma.chatUser.findMany({
     where: { Chat: { is: { slug } } },
@@ -42,11 +47,6 @@ export async function load({ params, url, cookies }) {
     orderBy: { userId: "asc" },
   });
 
-  const activeUserIds = new Set(
-    chatUsers
-      .filter((user) => user.isActive && !user.isHidden)
-      .map((user) => user.userId),
-  );
   const hiddenUserIds = new Set(
     chatUsers.filter((user) => user.isHidden).map((user) => user.userId),
   );
@@ -64,16 +64,14 @@ export async function load({ params, url, cookies }) {
     orderBy: { day: "desc" },
   });
 
-  const filteredMatches =
-    status === "active"
-      ? matches.filter(
-          (match) =>
-            activeUserIds.has(match.playerA1Id) &&
-            activeUserIds.has(match.playerA2Id) &&
-            activeUserIds.has(match.playerB1Id) &&
-            activeUserIds.has(match.playerB2Id),
-        )
-      : matches;
+  const filteredMatches = matches;
+
+  const eloStats = buildEloStats({
+    players: chatUsers,
+    matches: filteredMatches,
+    isSeason,
+    disableSeasonBoost,
+  });
 
   const days = Array.from(
     filteredMatches.reduce((map, match) => {
@@ -167,6 +165,18 @@ export async function load({ params, url, cookies }) {
     );
 
   const matchViews = dayMatches.map((match) => ({
+    ...(eloStats.matchViews.get(match.id) ?? {
+      teamAWinProbability: 0.5,
+      teamBWinProbability: 0.5,
+      teamAAvgRatingBefore: 1500,
+      teamBAvgRatingBefore: 1500,
+      playerA1RatingBefore: 1500,
+      playerA2RatingBefore: 1500,
+      playerB1RatingBefore: 1500,
+      playerB2RatingBefore: 1500,
+      favoriteSide: null,
+      underdogWon: false,
+    }),
     ...match,
     playerA1Name: playerMap.get(match.playerA1Id) ?? "Unknown",
     playerA2Name: playerMap.get(match.playerA2Id) ?? "Unknown",
@@ -216,7 +226,7 @@ export async function load({ params, url, cookies }) {
       label: activeRange.label,
       note: activeRange.note,
     },
-    isAdmin: await isAdmin(cookies),
+    isAdmin: adminUser,
     adminEnabled: await adminEnabled(),
   };
 }

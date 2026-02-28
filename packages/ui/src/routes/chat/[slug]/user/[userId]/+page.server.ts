@@ -1,14 +1,20 @@
 import { error, fail } from "@sveltejs/kit";
 import { calculateWinrate } from "$lib";
 import { calculateResults } from "$lib/rating";
+import { buildEloStats } from "$lib/server/elo-stats";
 import { buildPlayerForm, getCurrentStreak } from "$lib/stats";
 import { adminEnabled, assertAdmin, isAdmin } from "$lib/server/admin";
 import { prisma } from "$lib/server/prisma";
 import { getRangeOptions } from "$lib/server/ranges";
 
+const getRate = (wins: number, total: number) =>
+  total > 0 ? Math.round((wins / total) * 100) : 0;
+
 export async function load({ params, url, cookies }) {
   const { userId, slug } = params;
   const userIdNumber = Number(userId);
+  const statusParam = url.searchParams.get("status") ?? "active";
+  const status = statusParam === "all" ? "all" : "active";
   const adminUser = await isAdmin(cookies);
   const chat = await prisma.chat.findUnique({ where: { slug } });
   if (!chat) {
@@ -30,8 +36,8 @@ export async function load({ params, url, cookies }) {
       : rangeKey;
   const activeRange =
     rangeOptions.find((range) => range.key === resolvedKey) ?? rangeOptions[0];
-  const disableSeasonBoost =
-    seasonBoostMode === "base" && activeRange.key.startsWith("season");
+  const isSeason = activeRange.key.startsWith("season");
+  const disableSeasonBoost = seasonBoostMode === "base" && isSeason;
 
   const chatUsers = await prisma.chatUser.findMany({
     where: { Chat: { is: { slug } } },
@@ -53,6 +59,12 @@ export async function load({ params, url, cookies }) {
     },
     orderBy: { id: "asc" },
   });
+  const eloStats = buildEloStats({
+    players: chatUsers,
+    matches,
+    isSeason,
+    disableSeasonBoost,
+  });
 
   const results = calculateResults(
     chatUsers,
@@ -70,6 +82,14 @@ export async function load({ params, url, cookies }) {
   if (!result) {
     throw error(404, "Result not found");
   }
+  const roleStats = eloStats.playerRoleStats.get(userIdNumber) ?? {
+    favoriteMatches: 0,
+    favoriteWins: 0,
+    favoriteLosses: 0,
+    underdogMatches: 0,
+    underdogWins: 0,
+    underdogLosses: 0,
+  };
 
   const fullForms = buildPlayerForm(matches);
   const history = fullForms.get(userIdNumber) ?? [];
@@ -211,6 +231,17 @@ export async function load({ params, url, cookies }) {
       recentForm,
       currentStreak,
     },
+    roleStats: {
+      ...roleStats,
+      favoriteWinrate: getRate(
+        roleStats.favoriteWins,
+        roleStats.favoriteMatches,
+      ),
+      underdogWinrate: getRate(
+        roleStats.underdogWins,
+        roleStats.underdogMatches,
+      ),
+    },
     matchSummaries: matchSummaries.slice(-8).reverse(),
     bestPartners,
     worstPartners,
@@ -222,6 +253,7 @@ export async function load({ params, url, cookies }) {
       matchesTotal: matches.length,
       lastMatchDay: matches.at(-1)?.day ?? null,
     },
+    status,
     rangeOptions: rangeOptions.map(({ key, label, note }) => ({
       key,
       label,

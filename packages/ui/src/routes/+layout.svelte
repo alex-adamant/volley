@@ -77,11 +77,12 @@
 <main class="min-h-screen px-3 pt-3 pb-10 md:px-6">
   <div class="mx-auto flex w-full max-w-6xl flex-col gap-3">
     <header class="relative z-400 flex items-center justify-between gap-2">
-      <div
+      <a
         class="text-muted-foreground text-xs font-semibold tracking-[0.3em] uppercase"
+        href={resolve("/")}
       >
         {$t("Volley")}
-      </div>
+      </a>
       <div class="relative" bind:this={menuRef}>
         <button
           type="button"

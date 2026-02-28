@@ -1,4 +1,25 @@
 import { loadChatRatingData } from "$lib/server/rating-data";
+import { buildEloStats, type RoleStats } from "$lib/server/elo-stats";
+
+type UpsetRow = RoleStats & {
+  id: number;
+  name: string;
+  underdogWinRate: number | null;
+  underdogLossRate: number | null;
+  favoriteWinRate: number | null;
+  favoriteLossRate: number | null;
+};
+
+const ROLE_MATCHES_CUTOFF_PERCENTILE = 0.33;
+
+const getRate = (wins: number, total: number) =>
+  total > 0 ? wins / total : null;
+const getPercentileThreshold = (values: number[], percentile: number) => {
+  if (values.length === 0) return 0;
+  const sorted = [...values].sort((a, b) => a - b);
+  const index = Math.floor((sorted.length - 1) * percentile);
+  return sorted[index];
+};
 
 export async function load({ params, url, cookies }) {
   const slug = params.slug;
@@ -23,6 +44,7 @@ export async function load({ params, url, cookies }) {
   });
 
   const activePlayers = users.filter((p) => p.isActive && !p.isHidden).length;
+  const filteredMatches = matches;
   const ratings = results.map((player) => player.rating);
   const ratingHigh = ratings.length ? Math.max(...ratings) : null;
   const ratingLow = ratings.length ? Math.min(...ratings) : null;
@@ -33,19 +55,21 @@ export async function load({ params, url, cookies }) {
     : null;
   const totalGames = results.reduce((sum, player) => sum + player.games, 0);
   const averageGames = results.length ? totalGames / results.length : null;
-  const totalPoints = matches.reduce(
+  const totalPoints = filteredMatches.reduce(
     (sum, match) => sum + match.teamAScore + match.teamBScore,
     0,
   );
-  const averagePoints = matches.length ? totalPoints / matches.length : null;
-  const averageMargin = matches.length
-    ? matches.reduce(
+  const averagePoints = filteredMatches.length
+    ? totalPoints / filteredMatches.length
+    : null;
+  const averageMargin = filteredMatches.length
+    ? filteredMatches.reduce(
         (sum, match) => sum + Math.abs(match.teamAScore - match.teamBScore),
         0,
-      ) / matches.length
+      ) / filteredMatches.length
     : null;
 
-  const serveStats = matches.reduce(
+  const serveStats = filteredMatches.reduce(
     (acc, match) => {
       const diff = match.teamAScore - match.teamBScore;
       acc.teamA.diffTotal += diff;
@@ -58,8 +82,8 @@ export async function load({ params, url, cookies }) {
       return acc;
     },
     {
-      teamA: { games: matches.length, wins: 0, diffTotal: 0 },
-      teamB: { games: matches.length, wins: 0, diffTotal: 0 },
+      teamA: { games: filteredMatches.length, wins: 0, diffTotal: 0 },
+      teamB: { games: filteredMatches.length, wins: 0, diffTotal: 0 },
     },
   );
 
@@ -85,15 +109,11 @@ export async function load({ params, url, cookies }) {
     }).format(value);
 
   let biggestMargin: { value: number; day: string } | null = null;
-  let closestMatch: { value: number; day: string } | null = null;
 
-  for (const match of matches) {
+  for (const match of filteredMatches) {
     const margin = Math.abs(match.teamAScore - match.teamBScore);
     if (!biggestMargin || margin > biggestMargin.value) {
       biggestMargin = { value: margin, day: formatDay(match.day) };
-    }
-    if (!closestMatch || margin < closestMatch.value) {
-      closestMatch = { value: margin, day: formatDay(match.day) };
     }
   }
 
@@ -132,6 +152,113 @@ export async function load({ params, url, cookies }) {
     ? { name: results[0].name, rating: results[0].rating }
     : null;
 
+  const isSeason = activeRange.key.startsWith("season");
+  const disableSeasonBoost = seasonBoostMode === "base" && isSeason;
+  const eloStats = buildEloStats({
+    players: users,
+    matches: filteredMatches,
+    isSeason,
+    disableSeasonBoost,
+  });
+
+  const upsetRows: UpsetRow[] = users
+    .filter((user) => !user.isHidden && (status === "all" || user.isActive))
+    .map((user) => {
+      const role = eloStats.playerRoleStats.get(user.userId) ?? {
+        favoriteMatches: 0,
+        favoriteWins: 0,
+        favoriteLosses: 0,
+        underdogMatches: 0,
+        underdogWins: 0,
+        underdogLosses: 0,
+      };
+      return {
+        id: user.userId,
+        name: user.User.name,
+        ...role,
+        underdogWinRate: getRate(role.underdogWins, role.underdogMatches),
+        underdogLossRate: getRate(role.underdogLosses, role.underdogMatches),
+        favoriteWinRate: getRate(role.favoriteWins, role.favoriteMatches),
+        favoriteLossRate: getRate(role.favoriteLosses, role.favoriteMatches),
+      };
+    });
+
+  const underdogMatchesByPlayer = upsetRows
+    .map((row) => row.underdogMatches)
+    .filter((count) => count > 0);
+  const favoriteMatchesByPlayer = upsetRows
+    .map((row) => row.favoriteMatches)
+    .filter((count) => count > 0);
+  const underdogMinMatches = getPercentileThreshold(
+    underdogMatchesByPlayer,
+    ROLE_MATCHES_CUTOFF_PERCENTILE,
+  );
+  const favoriteMinMatches = getPercentileThreshold(
+    favoriteMatchesByPlayer,
+    ROLE_MATCHES_CUTOFF_PERCENTILE,
+  );
+
+  const matchRoleRows = [...eloStats.matchViews.values()];
+  const matchesWithFavorite = matchRoleRows.filter(
+    (match) => match.favoriteSide !== null,
+  ).length;
+  const underdogWins = matchRoleRows.filter(
+    (match) => match.underdogWon,
+  ).length;
+  const noFavoriteMatches = filteredMatches.length - matchesWithFavorite;
+
+  const topUnderdogWins = upsetRows
+    .filter(
+      (row) =>
+        row.underdogMatches > 0 && row.underdogMatches >= underdogMinMatches,
+    )
+    .sort(
+      (a, b) =>
+        (b.underdogWinRate ?? 0) - (a.underdogWinRate ?? 0) ||
+        b.underdogMatches - a.underdogMatches ||
+        a.name.localeCompare(b.name),
+    )
+    .slice(0, 5);
+
+  const topFavoriteLosses = upsetRows
+    .filter(
+      (row) =>
+        row.favoriteMatches > 0 && row.favoriteMatches >= favoriteMinMatches,
+    )
+    .sort(
+      (a, b) =>
+        (a.favoriteWinRate ?? 0) - (b.favoriteWinRate ?? 0) ||
+        b.favoriteMatches - a.favoriteMatches ||
+        a.name.localeCompare(b.name),
+    )
+    .slice(0, 5);
+
+  const topFavoriteWins = upsetRows
+    .filter(
+      (row) =>
+        row.favoriteMatches > 0 && row.favoriteMatches >= favoriteMinMatches,
+    )
+    .sort(
+      (a, b) =>
+        (b.favoriteWinRate ?? 0) - (a.favoriteWinRate ?? 0) ||
+        b.favoriteMatches - a.favoriteMatches ||
+        a.name.localeCompare(b.name),
+    )
+    .slice(0, 5);
+
+  const topUnderdogLosses = upsetRows
+    .filter(
+      (row) =>
+        row.underdogMatches > 0 && row.underdogMatches >= underdogMinMatches,
+    )
+    .sort(
+      (a, b) =>
+        (a.underdogWinRate ?? 0) - (b.underdogWinRate ?? 0) ||
+        b.underdogMatches - a.underdogMatches ||
+        a.name.localeCompare(b.name),
+    )
+    .slice(0, 5);
+
   return {
     chat,
     status,
@@ -139,8 +266,8 @@ export async function load({ params, url, cookies }) {
       playersTotal: users.length,
       playersActive: activePlayers,
       playersShown: results.length,
-      matchesTotal: matches.length,
-      lastMatchDay: matches.at(-1)?.day ?? null,
+      matchesTotal: filteredMatches.length,
+      lastMatchDay: filteredMatches.at(-1)?.day ?? null,
       ratingHigh,
       ratingLow,
       averageRating,
@@ -153,7 +280,19 @@ export async function load({ params, url, cookies }) {
       mostActivePlayer,
       bestWinrate,
       biggestMargin,
-      closestMatch,
+      upsets: {
+        matchesWithFavorite,
+        underdogWins,
+        noFavoriteMatches,
+        upsetRate: getRate(underdogWins, matchesWithFavorite),
+        topUnderdogWins,
+        topFavoriteLosses,
+        topFavoriteWins,
+        topUnderdogLosses,
+        roleMatchesCutoffPercent: Math.round(
+          ROLE_MATCHES_CUTOFF_PERCENTILE * 100,
+        ),
+      },
     },
     leaders: {
       topRating,

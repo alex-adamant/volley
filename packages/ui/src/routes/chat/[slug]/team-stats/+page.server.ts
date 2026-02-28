@@ -8,6 +8,7 @@ export async function load({ params, url, cookies }) {
   const slug = params.slug;
   const statusParam = url.searchParams.get("status") ?? "active";
   const status = statusParam === "all" ? "all" : "active";
+  const adminUser = await isAdmin(cookies);
 
   const chat = await prisma.chat.findUnique({ where: { slug } });
   if (!chat) {
@@ -91,7 +92,7 @@ export async function load({ params, url, cookies }) {
       note: activeRange.note,
     },
     status,
-    isAdmin: await isAdmin(cookies),
+    isAdmin: adminUser,
     adminEnabled: await adminEnabled(),
   };
 }
