@@ -54,17 +54,15 @@ export async function load({ params, url, cookies }) {
     chatUsers.map((item) => [item.userId, item.User.name]),
   );
 
-  const matches = await prisma.match.findMany({
+  const filteredMatches = await prisma.match.findMany({
     where: {
       Chat: { is: { slug } },
       ...(activeRange.start && activeRange.end
         ? { day: { gte: activeRange.start, lte: activeRange.end } }
         : {}),
     },
-    orderBy: { day: "desc" },
+    orderBy: [{ day: "desc" }, { id: "desc" }],
   });
-
-  const filteredMatches = matches;
 
   const eloStats = buildEloStats({
     players: chatUsers,
