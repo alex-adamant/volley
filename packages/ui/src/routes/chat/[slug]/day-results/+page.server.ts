@@ -61,7 +61,7 @@ export async function load({ params, url, cookies }) {
         ? { day: { gte: activeRange.start, lte: activeRange.end } }
         : {}),
     },
-    orderBy: [{ day: "desc" }, { id: "desc" }],
+    orderBy: [{ day: "desc" }, { id: "asc" }],
   });
 
   const eloStats = buildEloStats({
