@@ -132,11 +132,13 @@
 
   const formatDiff = (value: number | null) => {
     if (value === null) return "—";
-    const rounded = Math.round(value * 10) / 10;
+    const rounded = Math.round(value * 100) / 100;
     const safe = Object.is(rounded, -0) ? 0 : rounded;
     const prefix = safe > 0 ? "+" : "";
-    return `${prefix}${safe.toFixed(1)}`;
+    return `${prefix}${safe.toFixed(2)}`;
   };
+  const formatForAgainst = (pointsFor: number, pointsAgainst: number) =>
+    `${pointsFor}-${pointsAgainst}`;
   const formatProbability = (value: number) => `${(value * 100).toFixed(1)}%`;
 
   const navItems = $derived.by(() => {
@@ -390,7 +392,7 @@
       {$t("Serve side")}
     </div>
     <div class="mt-2 overflow-x-auto">
-      <table class="w-full min-w-[320px] text-xs">
+      <table class="w-full min-w-105 text-xs">
         <thead class="text-left">
           <tr
             class="text-muted-foreground text-xs font-semibold tracking-[0.2em] uppercase"
@@ -398,6 +400,7 @@
             <th class="p-2">{$t("Side")}</th>
             <th class="p-2 text-right">{$t("Games")}</th>
             <th class="p-2 text-right">{$t("Wins")}</th>
+            <th class="p-2 text-right">{$t("For / against")}</th>
             <th class="p-2 text-right">{$t("Diff/G")}</th>
           </tr>
         </thead>
@@ -411,6 +414,12 @@
               {data.stats.serveSummary.teamA.wins}
             </td>
             <td class="p-2 text-right font-semibold tabular-nums">
+              {formatForAgainst(
+                data.stats.serveSummary.teamA.pointsFor,
+                data.stats.serveSummary.teamA.pointsAgainst,
+              )}
+            </td>
+            <td class="p-2 text-right font-semibold tabular-nums">
               {formatDiff(data.stats.serveSummary.teamA.diffAvg)}
             </td>
           </tr>
@@ -421,6 +430,12 @@
             </td>
             <td class="p-2 text-right tabular-nums">
               {data.stats.serveSummary.teamB.wins}
+            </td>
+            <td class="p-2 text-right font-semibold tabular-nums">
+              {formatForAgainst(
+                data.stats.serveSummary.teamB.pointsFor,
+                data.stats.serveSummary.teamB.pointsAgainst,
+              )}
             </td>
             <td class="p-2 text-right font-semibold tabular-nums">
               {formatDiff(data.stats.serveSummary.teamB.diffAvg)}

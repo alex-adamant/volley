@@ -74,6 +74,10 @@ export async function load({ params, url, cookies }) {
       const diff = match.teamAScore - match.teamBScore;
       acc.teamA.diffTotal += diff;
       acc.teamB.diffTotal -= diff;
+      acc.teamA.pointsFor += match.teamAScore;
+      acc.teamA.pointsAgainst += match.teamBScore;
+      acc.teamB.pointsFor += match.teamBScore;
+      acc.teamB.pointsAgainst += match.teamAScore;
       if (diff > 0) {
         acc.teamA.wins += 1;
       } else if (diff < 0) {
@@ -82,8 +86,20 @@ export async function load({ params, url, cookies }) {
       return acc;
     },
     {
-      teamA: { games: filteredMatches.length, wins: 0, diffTotal: 0 },
-      teamB: { games: filteredMatches.length, wins: 0, diffTotal: 0 },
+      teamA: {
+        games: filteredMatches.length,
+        wins: 0,
+        diffTotal: 0,
+        pointsFor: 0,
+        pointsAgainst: 0,
+      },
+      teamB: {
+        games: filteredMatches.length,
+        wins: 0,
+        diffTotal: 0,
+        pointsFor: 0,
+        pointsAgainst: 0,
+      },
     },
   );
 
