@@ -27,8 +27,6 @@ type BiggestUpsetRow = {
   winnerSide: "A" | "B";
   winnerExpectedWinProbability: number;
   favoriteExpectedWinProbability: number;
-  teamARatingDelta: number;
-  teamBRatingDelta: number;
   teamAPlayers: BiggestUpsetPlayer[];
   teamBPlayers: BiggestUpsetPlayer[];
 };
@@ -328,12 +326,6 @@ export async function load({ params, url, cookies }) {
         winnerSide,
         winnerExpectedWinProbability,
         favoriteExpectedWinProbability,
-        teamARatingDelta: Math.round(
-          (view.playerA1RatingDelta + view.playerA2RatingDelta) / 2,
-        ),
-        teamBRatingDelta: Math.round(
-          (view.playerB1RatingDelta + view.playerB2RatingDelta) / 2,
-        ),
         teamAPlayers: [
           {
             id: match.playerA1Id,
