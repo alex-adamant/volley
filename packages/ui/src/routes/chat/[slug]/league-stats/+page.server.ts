@@ -10,25 +10,28 @@ type UpsetRow = RoleStats & {
   favoriteLossRate: number | null;
 };
 
-type BiggestUpsetPlayer = {
+type FeaturedMatchPlayer = {
   id: number;
   name: string;
   delta: number;
   ratingBefore: number;
 };
 
-type BiggestUpsetRow = {
+type FeaturedMatchRow = {
   id: number;
   day: string;
   teamAScore: number;
   teamBScore: number;
+  margin: number;
   teamAWinProbability: number;
   teamBWinProbability: number;
+  favoriteSide: "A" | "B" | null;
   winnerSide: "A" | "B";
+  isUpset: boolean;
   winnerExpectedWinProbability: number;
-  favoriteExpectedWinProbability: number;
-  teamAPlayers: BiggestUpsetPlayer[];
-  teamBPlayers: BiggestUpsetPlayer[];
+  favoriteExpectedWinProbability: number | null;
+  teamAPlayers: FeaturedMatchPlayer[];
+  teamBPlayers: FeaturedMatchPlayer[];
 };
 
 const ROLE_MATCHES_CUTOFF_PERCENTILE = 0.33;
@@ -301,10 +304,10 @@ export async function load({ params, url, cookies }) {
     )
     .slice(0, 5);
 
-  const topBiggestUpsets: BiggestUpsetRow[] = filteredMatches
+  const featuredMatches: FeaturedMatchRow[] = filteredMatches
     .map((match) => {
       const view = eloStats.matchViews.get(match.id);
-      if (!view || !view.underdogWon || view.favoriteSide === null) {
+      if (!view) {
         return null;
       }
 
@@ -314,18 +317,23 @@ export async function load({ params, url, cookies }) {
           ? view.teamAWinProbability
           : view.teamBWinProbability;
       const favoriteExpectedWinProbability =
-        winnerSide === "A"
-          ? view.teamBWinProbability
-          : view.teamAWinProbability;
+        view.favoriteSide === null
+          ? null
+          : winnerSide === "A"
+            ? view.teamBWinProbability
+            : view.teamAWinProbability;
 
       return {
         id: match.id,
         day: formatDay(match.day),
         teamAScore: match.teamAScore,
         teamBScore: match.teamBScore,
+        margin: Math.abs(match.teamAScore - match.teamBScore),
         teamAWinProbability: view.teamAWinProbability,
         teamBWinProbability: view.teamBWinProbability,
+        favoriteSide: view.favoriteSide,
         winnerSide,
+        isUpset: view.underdogWon,
         winnerExpectedWinProbability,
         favoriteExpectedWinProbability,
         teamAPlayers: [
@@ -366,11 +374,35 @@ export async function load({ params, url, cookies }) {
         ],
       };
     })
-    .filter((row): row is BiggestUpsetRow => row !== null)
+    .filter((row): row is FeaturedMatchRow => row !== null);
+
+  const topBiggestUpsets = featuredMatches
+    .filter((row) => row.isUpset && row.favoriteSide !== null)
     .sort(
       (a, b) =>
         a.winnerExpectedWinProbability - b.winnerExpectedWinProbability ||
-        b.favoriteExpectedWinProbability - a.favoriteExpectedWinProbability ||
+        (b.favoriteExpectedWinProbability ?? 0) -
+          (a.favoriteExpectedWinProbability ?? 0) ||
+        b.margin - a.margin ||
+        b.id - a.id,
+    )
+    .slice(0, 10);
+
+  const topSafestWins = featuredMatches
+    .filter((row) => !row.isUpset && row.favoriteSide !== null)
+    .sort(
+      (a, b) =>
+        b.winnerExpectedWinProbability - a.winnerExpectedWinProbability ||
+        a.margin - b.margin ||
+        b.id - a.id,
+    )
+    .slice(0, 10);
+
+  const topBiggestWinsByMargin = featuredMatches
+    .sort(
+      (a, b) =>
+        b.margin - a.margin ||
+        b.winnerExpectedWinProbability - a.winnerExpectedWinProbability ||
         b.id - a.id,
     )
     .slice(0, 10);
@@ -406,6 +438,8 @@ export async function load({ params, url, cookies }) {
         topFavoriteWins,
         topUnderdogLosses,
         topBiggestUpsets,
+        topSafestWins,
+        topBiggestWinsByMargin,
         roleMatchesCutoffPercent: Math.round(
           ROLE_MATCHES_CUTOFF_PERCENTILE * 100,
         ),

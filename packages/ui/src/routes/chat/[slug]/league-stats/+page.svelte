@@ -144,6 +144,7 @@
     `${Math.round(value * 100)}%`;
   const formatRatingDelta = (value: number) =>
     `${value > 0 ? "+" : ""}${value}`;
+  const formatMargin = (value: number) => `+${value}`;
 
   const navItems = $derived.by(() => {
     const query = buildQuery(rangeValue, statusValue, seasonBoostValue);
@@ -455,7 +456,7 @@
   class="border-stroke shadow-card mt-3 rounded-2xl border bg-white/90 p-3"
 >
   <div class="flex items-center justify-between gap-2">
-    <div class="text-ink text-sm font-semibold">{$t("Upsets")}</div>
+    <div class="text-ink text-sm font-semibold">{$t("Extreme matches")}</div>
     <div class="text-muted-foreground text-xs font-semibold tabular-nums">
       {data.stats.upsets.underdogWins}/{data.stats.upsets.matchesWithFavorite}
     </div>
@@ -478,7 +479,7 @@
     })}
   </div>
 
-  <div class="mt-3">
+  <div class="mt-5">
     <div
       class="text-muted-foreground text-xs font-semibold tracking-[0.2em] uppercase"
     >
@@ -577,7 +578,205 @@
     </div>
   </div>
 
-  <div class="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+  <div class="mt-6">
+    <div
+      class="text-muted-foreground text-xs font-semibold tracking-[0.2em] uppercase"
+    >
+      {$t("Top-10 safest wins")}
+    </div>
+    <div class="mt-2 grid gap-2 lg:grid-cols-2">
+      {#if data.stats.upsets.topSafestWins.length === 0}
+        <div class="text-muted-foreground text-xs">
+          {$t("No favorite wins yet.")}
+        </div>
+      {:else}
+        {#each data.stats.upsets.topSafestWins as match, index (match.id)}
+          <div
+            class="border-stroke/60 rounded-xl border bg-white/70 p-2.5 text-xs"
+          >
+            <div class="flex items-center justify-between gap-2">
+              <div class="text-muted-foreground font-semibold tabular-nums">
+                #{index + 1}
+              </div>
+              <div
+                class="text-ink text-center text-[11px] font-semibold tabular-nums"
+              >
+                {formatProbabilityRounded(match.winnerExpectedWinProbability)}
+              </div>
+              <div class="text-muted-foreground">{match.day}</div>
+            </div>
+            <div class="mt-2 space-y-1.5">
+              <div class="flex items-center justify-between gap-2">
+                <div
+                  class:text-ink={match.winnerSide === "A"}
+                  class:font-semibold={match.winnerSide === "A"}
+                  class="text-ink/80 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 pr-2"
+                >
+                  {#each match.teamAPlayers as player, playerIndex (player.id)}
+                    <span class="inline-flex min-w-0 items-center gap-1">
+                      <span class="truncate">
+                        {player.name} ({Math.round(player.ratingBefore)})
+                      </span>
+                      <span
+                        class:text-green-600={player.delta > 0}
+                        class:text-red-600={player.delta < 0}
+                        class="text-[11px] font-semibold tabular-nums"
+                      >
+                        {formatRatingDelta(player.delta)}
+                      </span>
+                    </span>
+                    {#if playerIndex < match.teamAPlayers.length - 1}
+                      <span class="text-ink/40">/</span>
+                    {/if}
+                  {/each}
+                </div>
+                <span
+                  class:text-ink={match.winnerSide === "A"}
+                  class:font-semibold={match.winnerSide === "A"}
+                  class="tabular-nums"
+                >
+                  {match.teamAScore}
+                </span>
+              </div>
+              <div class="flex items-center justify-between gap-2">
+                <div
+                  class:text-ink={match.winnerSide === "B"}
+                  class:font-semibold={match.winnerSide === "B"}
+                  class="text-ink/80 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 pr-2"
+                >
+                  {#each match.teamBPlayers as player, playerIndex (player.id)}
+                    <span class="inline-flex min-w-0 items-center gap-1">
+                      <span class="truncate">
+                        {player.name} ({Math.round(player.ratingBefore)})
+                      </span>
+                      <span
+                        class:text-green-600={player.delta > 0}
+                        class:text-red-600={player.delta < 0}
+                        class="text-[11px] font-semibold tabular-nums"
+                      >
+                        {formatRatingDelta(player.delta)}
+                      </span>
+                    </span>
+                    {#if playerIndex < match.teamBPlayers.length - 1}
+                      <span class="text-ink/40">/</span>
+                    {/if}
+                  {/each}
+                </div>
+                <span
+                  class:text-ink={match.winnerSide === "B"}
+                  class:font-semibold={match.winnerSide === "B"}
+                  class="tabular-nums"
+                >
+                  {match.teamBScore}
+                </span>
+              </div>
+            </div>
+          </div>
+        {/each}
+      {/if}
+    </div>
+  </div>
+
+  <div class="mt-6">
+    <div
+      class="text-muted-foreground text-xs font-semibold tracking-[0.2em] uppercase"
+    >
+      {$t("Top-10 biggest wins by margin")}
+    </div>
+    <div class="mt-2 grid gap-2 lg:grid-cols-2">
+      {#if data.stats.upsets.topBiggestWinsByMargin.length === 0}
+        <div class="text-muted-foreground text-xs">
+          {$t("No matches yet.")}
+        </div>
+      {:else}
+        {#each data.stats.upsets.topBiggestWinsByMargin as match, index (match.id)}
+          <div
+            class="border-stroke/60 rounded-xl border bg-white/70 p-2.5 text-xs"
+          >
+            <div class="flex items-center justify-between gap-2">
+              <div class="text-muted-foreground font-semibold tabular-nums">
+                #{index + 1}
+              </div>
+              <div
+                class="text-ink text-center text-[11px] font-semibold tabular-nums"
+              >
+                {formatMargin(match.margin)}
+              </div>
+              <div class="text-muted-foreground">{match.day}</div>
+            </div>
+            <div class="mt-2 space-y-1.5">
+              <div class="flex items-center justify-between gap-2">
+                <div
+                  class:text-ink={match.winnerSide === "A"}
+                  class:font-semibold={match.winnerSide === "A"}
+                  class="text-ink/80 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 pr-2"
+                >
+                  {#each match.teamAPlayers as player, playerIndex (player.id)}
+                    <span class="inline-flex min-w-0 items-center gap-1">
+                      <span class="truncate">
+                        {player.name} ({Math.round(player.ratingBefore)})
+                      </span>
+                      <span
+                        class:text-green-600={player.delta > 0}
+                        class:text-red-600={player.delta < 0}
+                        class="text-[11px] font-semibold tabular-nums"
+                      >
+                        {formatRatingDelta(player.delta)}
+                      </span>
+                    </span>
+                    {#if playerIndex < match.teamAPlayers.length - 1}
+                      <span class="text-ink/40">/</span>
+                    {/if}
+                  {/each}
+                </div>
+                <span
+                  class:text-ink={match.winnerSide === "A"}
+                  class:font-semibold={match.winnerSide === "A"}
+                  class="tabular-nums"
+                >
+                  {match.teamAScore}
+                </span>
+              </div>
+              <div class="flex items-center justify-between gap-2">
+                <div
+                  class:text-ink={match.winnerSide === "B"}
+                  class:font-semibold={match.winnerSide === "B"}
+                  class="text-ink/80 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 pr-2"
+                >
+                  {#each match.teamBPlayers as player, playerIndex (player.id)}
+                    <span class="inline-flex min-w-0 items-center gap-1">
+                      <span class="truncate">
+                        {player.name} ({Math.round(player.ratingBefore)})
+                      </span>
+                      <span
+                        class:text-green-600={player.delta > 0}
+                        class:text-red-600={player.delta < 0}
+                        class="text-[11px] font-semibold tabular-nums"
+                      >
+                        {formatRatingDelta(player.delta)}
+                      </span>
+                    </span>
+                    {#if playerIndex < match.teamBPlayers.length - 1}
+                      <span class="text-ink/40">/</span>
+                    {/if}
+                  {/each}
+                </div>
+                <span
+                  class:text-ink={match.winnerSide === "B"}
+                  class:font-semibold={match.winnerSide === "B"}
+                  class="tabular-nums"
+                >
+                  {match.teamBScore}
+                </span>
+              </div>
+            </div>
+          </div>
+        {/each}
+      {/if}
+    </div>
+  </div>
+
+  <div class="mt-6 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
     <div>
       <div
         class="text-muted-foreground text-xs font-semibold tracking-[0.2em] uppercase"
