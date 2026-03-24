@@ -69,14 +69,19 @@ const ru: Record<string, string> = {
     "В этом периоде пока нет матчей с явным фаворитом.",
   "Underdog wins in {rate} of favorite matches":
     "Андердоги выигрывают в {rate} матчей с фаворитом",
+  "Top-10 biggest upsets": "Топ-10 самых больших апсетов",
   "Best underdogs": "Лучшие андердоги",
   "Top underdog wins": "Топ побед андердогов",
   "No underdog wins yet.": "Побед андердогов пока нет.",
+  "No upset wins yet.": "Апсетов пока нет.",
   "Worst favorites": "Худшие фавориты",
   "Worst underdogs": "Худшие андердоги",
   "Best favorites": "Лучшие фавориты",
   "Top favorite losses": "Топ поражений фаворитов",
   "No favorite losses yet.": "Поражений фаворитов пока нет.",
+  "Expected win chance": "Ожидаемые шансы на победу",
+  "Pre-match odds": "Шансы до матча",
+  "Rating change": "Изменение рейтинга",
   "Not enough underdog matches yet.":
     "Пока недостаточно матчей в роли андердога.",
   "Not enough favorite matches yet.":

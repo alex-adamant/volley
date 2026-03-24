@@ -10,6 +10,29 @@ type UpsetRow = RoleStats & {
   favoriteLossRate: number | null;
 };
 
+type BiggestUpsetPlayer = {
+  id: number;
+  name: string;
+  delta: number;
+  ratingBefore: number;
+};
+
+type BiggestUpsetRow = {
+  id: number;
+  day: string;
+  teamAScore: number;
+  teamBScore: number;
+  teamAWinProbability: number;
+  teamBWinProbability: number;
+  winnerSide: "A" | "B";
+  winnerExpectedWinProbability: number;
+  favoriteExpectedWinProbability: number;
+  teamARatingDelta: number;
+  teamBRatingDelta: number;
+  teamAPlayers: BiggestUpsetPlayer[];
+  teamBPlayers: BiggestUpsetPlayer[];
+};
+
 const ROLE_MATCHES_CUTOFF_PERCENTILE = 0.33;
 
 const getRate = (wins: number, total: number) =>
@@ -176,6 +199,9 @@ export async function load({ params, url, cookies }) {
     isSeason,
     disableSeasonBoost,
   });
+  const playerNameMap = new Map(
+    users.map((user) => [user.userId, user.User.name]),
+  );
 
   const upsetRows: UpsetRow[] = users
     .filter((user) => !user.isHidden && (status === "all" || user.isActive))
@@ -275,6 +301,86 @@ export async function load({ params, url, cookies }) {
     )
     .slice(0, 5);
 
+  const topBiggestUpsets: BiggestUpsetRow[] = filteredMatches
+    .map((match) => {
+      const view = eloStats.matchViews.get(match.id);
+      if (!view || !view.underdogWon || view.favoriteSide === null) {
+        return null;
+      }
+
+      const winnerSide = match.teamAScore > match.teamBScore ? "A" : "B";
+      const winnerExpectedWinProbability =
+        winnerSide === "A"
+          ? view.teamAWinProbability
+          : view.teamBWinProbability;
+      const favoriteExpectedWinProbability =
+        winnerSide === "A"
+          ? view.teamBWinProbability
+          : view.teamAWinProbability;
+
+      return {
+        id: match.id,
+        day: formatDay(match.day),
+        teamAScore: match.teamAScore,
+        teamBScore: match.teamBScore,
+        teamAWinProbability: view.teamAWinProbability,
+        teamBWinProbability: view.teamBWinProbability,
+        winnerSide,
+        winnerExpectedWinProbability,
+        favoriteExpectedWinProbability,
+        teamARatingDelta: Math.round(
+          (view.playerA1RatingDelta + view.playerA2RatingDelta) / 2,
+        ),
+        teamBRatingDelta: Math.round(
+          (view.playerB1RatingDelta + view.playerB2RatingDelta) / 2,
+        ),
+        teamAPlayers: [
+          {
+            id: match.playerA1Id,
+            name:
+              playerNameMap.get(match.playerA1Id) ??
+              `Player ${match.playerA1Id}`,
+            delta: view.playerA1RatingDelta,
+            ratingBefore: view.playerA1RatingBefore,
+          },
+          {
+            id: match.playerA2Id,
+            name:
+              playerNameMap.get(match.playerA2Id) ??
+              `Player ${match.playerA2Id}`,
+            delta: view.playerA2RatingDelta,
+            ratingBefore: view.playerA2RatingBefore,
+          },
+        ],
+        teamBPlayers: [
+          {
+            id: match.playerB1Id,
+            name:
+              playerNameMap.get(match.playerB1Id) ??
+              `Player ${match.playerB1Id}`,
+            delta: view.playerB1RatingDelta,
+            ratingBefore: view.playerB1RatingBefore,
+          },
+          {
+            id: match.playerB2Id,
+            name:
+              playerNameMap.get(match.playerB2Id) ??
+              `Player ${match.playerB2Id}`,
+            delta: view.playerB2RatingDelta,
+            ratingBefore: view.playerB2RatingBefore,
+          },
+        ],
+      };
+    })
+    .filter((row): row is BiggestUpsetRow => row !== null)
+    .sort(
+      (a, b) =>
+        a.winnerExpectedWinProbability - b.winnerExpectedWinProbability ||
+        b.favoriteExpectedWinProbability - a.favoriteExpectedWinProbability ||
+        b.id - a.id,
+    )
+    .slice(0, 10);
+
   return {
     chat,
     status,
@@ -305,6 +411,7 @@ export async function load({ params, url, cookies }) {
         topFavoriteLosses,
         topFavoriteWins,
         topUnderdogLosses,
+        topBiggestUpsets,
         roleMatchesCutoffPercent: Math.round(
           ROLE_MATCHES_CUTOFF_PERCENTILE * 100,
         ),

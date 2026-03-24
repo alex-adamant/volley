@@ -140,6 +140,14 @@
   const formatForAgainst = (pointsFor: number, pointsAgainst: number) =>
     `${pointsFor}-${pointsAgainst}`;
   const formatProbability = (value: number) => `${(value * 100).toFixed(1)}%`;
+  const formatRatingDelta = (value: number) =>
+    `${value > 0 ? "+" : ""}${value}`;
+  const formatPlayerNames = (
+    players: { name: string; ratingBefore: number }[],
+  ) =>
+    players
+      .map((player) => `${player.name} (${Math.round(player.ratingBefore)})`)
+      .join(" / ");
 
   const navItems = $derived.by(() => {
     const query = buildQuery(rangeValue, statusValue, seasonBoostValue);
@@ -472,6 +480,90 @@
     {$t("Excluded bottom {percent}% by role sample size.", {
       percent: data.stats.upsets.roleMatchesCutoffPercent,
     })}
+  </div>
+
+  <div class="mt-3">
+    <div
+      class="text-muted-foreground text-xs font-semibold tracking-[0.2em] uppercase"
+    >
+      {$t("Top-10 biggest upsets")}
+    </div>
+    <div class="mt-2 grid gap-2 lg:grid-cols-2">
+      {#if data.stats.upsets.topBiggestUpsets.length === 0}
+        <div class="text-muted-foreground text-xs">
+          {$t("No upset wins yet.")}
+        </div>
+      {:else}
+        {#each data.stats.upsets.topBiggestUpsets as match, index (match.id)}
+          <div
+            class="border-stroke/60 rounded-xl border bg-white/70 p-2.5 text-xs"
+          >
+            <div class="flex items-center justify-between gap-2">
+              <div class="text-muted-foreground font-semibold tabular-nums">
+                #{index + 1}
+              </div>
+              <div class="text-ink text-center text-[11px] font-semibold tabular-nums">
+                {$t("Pre-match odds")} {formatProbability(match.teamAWinProbability)}
+                vs {formatProbability(match.teamBWinProbability)}
+              </div>
+              <div class="text-muted-foreground">{match.day}</div>
+            </div>
+            <div class="mt-2 space-y-1.5">
+              <div class="flex items-center justify-between gap-2">
+                <div class="flex min-w-0 items-center gap-2 pr-2">
+                  <span
+                    class:text-ink={match.winnerSide === "A"}
+                    class:font-semibold={match.winnerSide === "A"}
+                    class="text-ink/80 truncate"
+                  >
+                    {formatPlayerNames(match.teamAPlayers)}
+                  </span>
+                  <span
+                    class:text-green-600={match.teamARatingDelta > 0}
+                    class:text-red-600={match.teamARatingDelta < 0}
+                    class="text-[11px] font-semibold tabular-nums"
+                  >
+                    {formatRatingDelta(match.teamARatingDelta)}
+                  </span>
+                </div>
+                <span
+                  class:text-ink={match.winnerSide === "A"}
+                  class:font-semibold={match.winnerSide === "A"}
+                  class="tabular-nums"
+                >
+                  {match.teamAScore}
+                </span>
+              </div>
+              <div class="flex items-center justify-between gap-2">
+                <div class="flex min-w-0 items-center gap-2 pr-2">
+                  <span
+                    class:text-ink={match.winnerSide === "B"}
+                    class:font-semibold={match.winnerSide === "B"}
+                    class="text-ink/80 truncate"
+                  >
+                    {formatPlayerNames(match.teamBPlayers)}
+                  </span>
+                  <span
+                    class:text-green-600={match.teamBRatingDelta > 0}
+                    class:text-red-600={match.teamBRatingDelta < 0}
+                    class="text-[11px] font-semibold tabular-nums"
+                  >
+                    {formatRatingDelta(match.teamBRatingDelta)}
+                  </span>
+                </div>
+                <span
+                  class:text-ink={match.winnerSide === "B"}
+                  class:font-semibold={match.winnerSide === "B"}
+                  class="tabular-nums"
+                >
+                  {match.teamBScore}
+                </span>
+              </div>
+            </div>
+          </div>
+        {/each}
+      {/if}
+    </div>
   </div>
 
   <div class="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-4">

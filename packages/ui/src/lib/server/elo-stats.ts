@@ -15,6 +15,10 @@ export type EloMatchView = {
   playerA2RatingBefore: number;
   playerB1RatingBefore: number;
   playerB2RatingBefore: number;
+  playerA1RatingDelta: number;
+  playerA2RatingDelta: number;
+  playerB1RatingDelta: number;
+  playerB2RatingDelta: number;
   favoriteSide: FavoriteSide | null;
   underdogWon: boolean;
   teamARole: TeamRole;
@@ -210,7 +214,7 @@ export function buildEloStats({
     applyRoleResult(ensurePlayerRole(match.playerB1Id), teamBRole, teamBWon);
     applyRoleResult(ensurePlayerRole(match.playerB2Id), teamBRole, teamBWon);
 
-    matchViews.set(match.id, {
+    const matchView: EloMatchView = {
       teamAWinProbability,
       teamBWinProbability,
       teamAAvgRatingBefore,
@@ -219,11 +223,16 @@ export function buildEloStats({
       playerA2RatingBefore: A2.rating,
       playerB1RatingBefore: B1.rating,
       playerB2RatingBefore: B2.rating,
+      playerA1RatingDelta: 0,
+      playerA2RatingDelta: 0,
+      playerB1RatingDelta: 0,
+      playerB2RatingDelta: 0,
       favoriteSide,
       underdogWon,
       teamARole,
       teamBRole,
-    });
+    };
+    matchViews.set(match.id, matchView);
 
     const capPoints = Math.min(
       Math.max(match.teamAScore, match.teamBScore),
@@ -264,6 +273,11 @@ export function buildEloStats({
       isSeason,
       disableSeasonBoost,
     });
+
+    matchView.playerA1RatingDelta = A1.rating - matchView.playerA1RatingBefore;
+    matchView.playerA2RatingDelta = A2.rating - matchView.playerA2RatingBefore;
+    matchView.playerB1RatingDelta = B1.rating - matchView.playerB1RatingBefore;
+    matchView.playerB2RatingDelta = B2.rating - matchView.playerB2RatingBefore;
   }
 
   return {
