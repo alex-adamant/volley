@@ -139,10 +139,12 @@ export async function load({ params, url, cookies }) {
     },
   };
 
+  const currentYear = new Date().getFullYear();
   const formatDay = (value: Date) =>
     new Intl.DateTimeFormat("en-US", {
       month: "short",
       day: "numeric",
+      ...(value.getFullYear() === currentYear ? {} : { year: "numeric" }),
     }).format(value);
 
   let biggestMargin: { value: number; day: string } | null = null;
